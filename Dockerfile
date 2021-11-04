@@ -1,11 +1,4 @@
-ARG IMAGE=store/intersystems/iris-community:2020.1.0.204.0
-ARG IMAGE=intersystemsdc/iris-community:2020.1.0.209.0-zpm
-ARG IMAGE=intersystemsdc/iris-community:2020.2.0.204.0-zpm
-ARG IMAGE=intersystemsdc/irishealth-community:2020.3.0.200.0-zpm
-ARG IMAGE=intersystemsdc/iris-community:2020.3.0.200.0-zpm
-ARG IMAGE=intersystemsdc/iris-community:2020.3.0.221.0-zpm
-ARG IMAGE=intersystemsdc/iris-community:2020.4.0.547.0-zpm
-FROM $IMAGE
+FROM store/intersystems/irishealth-community:2021.1.0.215.3
 
 USER root   
 ## add git
@@ -19,7 +12,10 @@ USER ${ISC_PACKAGE_MGRUSER}
 COPY  src src
 COPY module.xml module.xml
 COPY iris.script iris.script
+COPY do-conversion.sh do-conversion.sh
 
 RUN iris start IRIS \
 	&& iris session IRIS < iris.script \
     && iris stop IRIS quietly
+
+CMD [ "-a", "/opt/irisbuild/do-conversion.sh", "-l", "/usr/irissys/mgr/messages.log"]

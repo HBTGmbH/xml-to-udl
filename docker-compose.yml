@@ -10,4 +10,4 @@ services:
       - 52773
       - 53773
     volumes:
-      - ./:/irisrun/repo
+      - ./export-src:/irisrun/udl-export
