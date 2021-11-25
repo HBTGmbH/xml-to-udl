@@ -73,6 +73,18 @@ ClassMethod ExportFile(className As %String, directory As %String) As %Status
             do ..mkdir(fileName)
             do ..fixXMLLine(className, fileName)
         }
+        elseif ext = "hl7"
+        {
+            set fileName = ..filename(className, directory)
+            do ..mkdir(fileName)
+            do ..fixXMLLine(className, fileName)
+        }
+        else
+        {
+            set fileName = ..filename($replace(className,"-","/"), directory)
+            do ..mkdir(fileName)
+            do ..fixXMLLine(className, fileName)
+        }
         
         Set rSC = $$$OK
     } Catch tSE {
