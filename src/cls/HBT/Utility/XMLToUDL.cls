@@ -150,9 +150,12 @@ ClassMethod filename(code As %String, directory As %String)
 	}
 
 	set ext = $p( code, ".", * ), ext = $zcvt( ext, "l" )
+    set splitFiles = ##class(%SYSTEM.Util).GetEnviron("SPLIT_FILES_IN_DIRECTORIES") = "true"
 	#; for each type - different directory
 	#; except cls,int,inc,mac
-	if ext'="cls",ext'="mac",ext'="int",ext'="inc",ext'="" set wd = ##class(%File).NormalizeDirectory( ext, wd )
+    if (splitFiles) {
+        if ext'="cls",ext'="mac",ext'="int",ext'="inc",ext'="" set wd = ##class(%File).NormalizeDirectory( ext, wd )
+    }
 
 	#; directory must exist before any call (%File).NormalizeFilename( , wd)
 	if '##class(%File).DirectoryExists( wd ) 
@@ -166,12 +169,23 @@ ClassMethod filename(code As %String, directory As %String)
 	set $p(filename,".",*)=ext
 	//B:code="DPRep.Rest.JSON.cls" "L"
 	#; for *.cls Package.Subpackage.ClassName.cls -> Folder/Subfolder/ClassName.cls
-	if (ext="cls") || (ext="gbl") 
-	{
-		set dirs = $piece( code, ".",1, *-2 ), dirs = $translate( dirs, ".", "/" )
-		set relpath = dirs _ "/" _ $piece( code, ".", *-1, * ) ;
-		set filename = ##class(%File).NormalizeFilename( relpath, wd )
-	}
+    if (splitFiles) {
+        if (ext="cls") || (ext="gbl") 
+        {
+            set dirs = $piece( code, ".",1, *-2 ), dirs = $translate( dirs, ".", "/" )
+            set relpath = dirs _ "/" _ $piece( code, ".", *-1, * ) ;
+            set filename = ##class(%File).NormalizeFilename( relpath, wd )
+        }
+    } else {
+        // Don't split hl7 by dots!
+        if (ext '= "hl7") {
+            set dirs = $piece( code, ".",1, *-2 ), dirs = $translate( dirs, ".", "/" )
+            set relpath = dirs _ "/" _ $piece( code, ".", *-1, * ) ;
+            set filename = ##class(%File).NormalizeFilename( relpath, wd )
+        }
+
+    }
+	
 
 	return filename
 }
