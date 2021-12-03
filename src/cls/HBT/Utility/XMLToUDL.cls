@@ -1,3 +1,5 @@
+Include HBT.Utility
+
 /// Description
 Class HBT.Utility.XMLToUDL
 {
@@ -79,6 +81,13 @@ ClassMethod ExportFile(className As %String, directory As %String) As %Status
             do ..mkdir(fileName)
             do ..fixXMLLine(className, fileName)
         }
+        elseif ext = "csp"
+        {
+            set fileName = ..filename(className, directory)
+            set fileName = "/irisrun/udl-export"_fileName
+            do ..mkdir(fileName)
+            do ..fixXMLLine(className, fileName)
+        }
         else
         {
             set fileName = ..filename($replace(className,"-","/"), directory)
@@ -127,11 +136,19 @@ ClassMethod exportClassAndRoutine(className As %String, directory As %String) As
 ClassMethod mkdir(filename As %String) As %Status
 {
 	set sc = $$$OK
-	set path = ##class(%File).GetDirectory(filename) 
+	set path = ##class(%File).GetDirectory(filename)
+    if ($$$StringEndsWith(path, "/")) {
+        set path = $$$StringRemoveLast(path)
+    }
 	if '##class(%File).DirectoryExists(path) 
 	{
-        write !, "Directory does not exist. Creating: ", path, " ", sc 
-	    $$$ThrowOnError(##class(%File).CreateDirectoryChain(path)) 
+        set toCreate = "/irisrun/udl-export"_path
+        write !, "Directory does not exist. Creating: "_toCreate, ! 
+	    set tResult = ##class(%File).CreateDirectoryChain(toCreate, .tReturn)
+        write "Directory create status: ", tResult, !
+        if ('tResult) {
+            zwrite tReturn
+        }
 	}
 	return sc
 }
