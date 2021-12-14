@@ -142,7 +142,12 @@ ClassMethod mkdir(filename As %String) As %Status
     }
 	if '##class(%File).DirectoryExists(path) 
 	{
-        set toCreate = "/irisrun/udl-export"_path
+        if ('$$$StringStartsWith(path, "/irisrun/udl-export")) {
+            set toCreate = "/irisrun/udl-export"_path
+        } else {
+            set toCreate = path
+        }
+      
         write !, "Directory does not exist. Creating: "_toCreate, ! 
 	    set tResult = ##class(%File).CreateDirectoryChain(toCreate, .tReturn)
         write "Directory create status: ", tResult, !
@@ -209,6 +214,7 @@ ClassMethod filename(code As %String, directory As %String)
 
 ClassMethod fixXMLLine(documentName, filename) As %Status
 {
+    write "FixXMLLine documentName="_documentName_" and filename="_filename,!
 	set stream = ##class(%Stream.FileBinary).%New()
 	do stream.LinkToFile(filename)
 	do $system.OBJ.ExportToStream(documentName, .stream)
