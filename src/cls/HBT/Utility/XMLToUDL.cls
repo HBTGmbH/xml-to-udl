@@ -28,8 +28,11 @@ ClassMethod ImportUDL(pLocation As %String) As %Status
     #Dim tSE As %Exception.StatusException
     #Dim tImportedItems as %String // CSV list of imported items
     Try {
-        write "Importing from location = '"_pLocation,!
-        do $System.OBJ.Load(pLocation,"",.%errorlog,.tImportedItems,0,,)
+        write "Fixing export file",!
+        set tFixedLocation = "/opt/irisbuild/export-fixed.xml"
+        $$$ThrowOnError(..FixExportFile(pLocation, tFixedLocation))
+        write "Importing from location = '"_tFixedLocation,!
+        do $System.OBJ.Load(tFixedLocation,"",.%errorlog,.tImportedItems,0,,)
         write "Imported:",!, tImportedItems,!,!
         set tItemList = $listFromString(tImportedItems, ",")
         for i=1:1:$LISTLENGTH(tItemList) {
@@ -226,6 +229,33 @@ ClassMethod fixXMLLine(documentName, filename) As %Status
 	do stream.Clear()
 	do stream.Write(data)
 	return stream.%Save()
+}
+
+ClassMethod FixExportFile(tFileIn As %String, tFileOut As %String) As %Status
+{
+  #Dim rSC As %Status
+  #Dim tSE As %Exception.StatusException
+  Try {
+    #dim tFile as %File
+    #dim tOutStream as %Stream.FileCharacter
+    set tFile = ##class(%File).%New(tFileIn)
+    set tOutStream = ##class(%Stream.FileCharacter).%New()
+    set tOutStream.Filename = tFileOut
+    $$$ThrowOnError(tFile.Open("R"))
+    while 'tFile.AtEnd {
+        set tLine = tFile.ReadLine() 
+        set tFixedLine = $REPLACE(tLine, ".CON.", ".C0N.")
+        $$$ThrowOnError(tOutStream.WriteLine(tFixedLine))
+    }
+    do tOutStream.Flush()
+    do tOutStream.%Save()
+    do tFile.Close()
+    Set rSC = $$$OK
+  } Catch tSE {
+    Set rSC = tSE.AsStatus()
+    Quit
+  }
+  Quit rSC
 }
 
 }
