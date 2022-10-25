@@ -1,4 +1,4 @@
-FROM store/intersystems/irishealth-community:2021.1.0.215.3
+FROM intersystems/irishealth-ml-community:2021.1.0.215.3
 
 USER root   
 ## add git
