@@ -18,4 +18,5 @@ RUN iris start IRIS \
 	&& iris session IRIS < iris.script \
     && iris stop IRIS quietly
 
-CMD [ "-a", "/opt/irisbuild/do-conversion.sh", "-l", "/usr/irissys/mgr/messages.log"]
+ENTRYPOINT [ "/iris-main" ]
+CMD [ "-a", "/opt/irisbuild/do-conversion.sh", "-l", "/usr/irissys/mgr/messages.log", "--check-caps", "false"]
