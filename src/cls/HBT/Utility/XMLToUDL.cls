@@ -28,16 +28,16 @@ ClassMethod ImportUDL(pLocation As %String) As %Status
     #Dim tSE As %Exception.StatusException
     #Dim tImportedItems as %String // CSV list of imported items
     Try {
-        write "Fixing export file",!
-        set tFixedLocation = "/opt/irisbuild/export-fixed.xml"
+        Write "Fixing export file",!
+        Set tFixedLocation = "/opt/irisbuild/export-fixed.xml"
         $$$ThrowOnError(..FixExportFile(pLocation, tFixedLocation))
-        write "Importing from location = '"_tFixedLocation,!
-        do $System.OBJ.Load(tFixedLocation,"",.%errorlog,.tImportedItems,0,,)
-        write "Imported:",!, tImportedItems,!,!
-        set tItemList = $listFromString(tImportedItems, ",")
-        for i=1:1:$LISTLENGTH(tItemList) {
-            set tItem = $LIST(tItemList,i)
-            write !,"Exporting Item", tItem,!
+        Write "Importing from location = '"_tFixedLocation,!
+        Do $SYSTEM.OBJ.Load(tFixedLocation,"",.%errorlog,.tImportedItems,0,,)
+        Write "Imported:",!, tImportedItems,!,!
+        Set tItemList = $LISTFROMSTRING(tImportedItems, ",")
+        For i=1:1:$LISTLENGTH(tItemList) {
+            Set tItem = $LIST(tItemList,i)
+            Write !,"Exporting Item ", tItem,!
             $$$ThrowOnError(..ExportFile(tItem, "/irisrun/udl-export"))
         }
         Set rSC = $$$OK
@@ -53,51 +53,55 @@ ClassMethod ExportFile(className As %String, directory As %String) As %Status
     #Dim rSC As %Status
     #Dim tSE As %Exception.StatusException
     Try {
-        set ignorList = $lb("dev.code.CLS",
+        Set ignorList = $LISTBUILD("dev.code.CLS",
 						"dev.deepsee.CLS",
 						"dev.FileManExtension.CLS",
 						"dev.diff.gitHub.CLS",
 						"dev.diff.gitLocal.CLS",
 						"dev.diff.utils.CLS")
-        return:$lf(ignorList, className)=1 $$$OK
+        Return:$LISTFIND(ignorList, className)=1 $$$OK
                             
-        set classAndRoutinesExts = $lb("cls","mac","int","inc")
+        Set classAndRoutinesExts = $LISTBUILD("cls","mac","int","inc")
         
-        set ext = $zcvt($p(className,".",*), "l")
-        write "Extension:", ext, !
+        Set ext = $ZCONVERT($PIECE(className,".",*), "l")
+        Write "Extension:", ext, !
         
-        if $lf(classAndRoutinesExts, ext)
+        If $LISTFIND(classAndRoutinesExts, ext)
         {
-            do ..exportClassAndRoutine($p(className, ".", 1, *-1)_"."_ext, directory)
+            Do ..exportClassAndRoutine($PIECE(className, ".", 1, *-1)_"."_ext, directory)
         }
-        elseif ext = "dfi"
+        ElseIf ext = "dfi"
         {
-            set fileName = ..filename($replace(className,"-","/"))
-            set fileName = $extract(fileName,1,*-4)_".xml"
+            Set fileName = ..filename($REPLACE(className,"-","/"))
+            Set fileName = $EXTRACT(fileName,1,*-4)_".xml"
             
-            do ..mkdir(fileName)
-            do ..fixXMLLine(className, fileName)
+            Do ..mkdir(fileName)
+            Do ..fixXMLLine(className, fileName)
         }
-        elseif ext = "hl7"
+        ElseIf ext = "hl7"
         {
-            set fileName = ..filename(className, directory)
-            do ..mkdir(fileName)
-            do ..fixXMLLine(className, fileName)
+            Set fileName = ..filename(className, directory)
+            Do ..mkdir(fileName)
+            Do ..fixXMLLine(className, fileName)
         }
-        elseif ext = "csp"
+        ElseIf ext = "csp"
         {
-            set fileName = ..filename(className, directory)
-            set fileName = "/irisrun/udl-export"_fileName
-            do ..mkdir(fileName)
-            do ..fixXMLLine(className, fileName)
+            Set fileName = ..filename(className, directory)
+            Set fileName = "/irisrun/udl-export"_fileName
+            Do ..mkdir(fileName)
+            Do ..fixXMLLine(className, fileName)
         }
-        else
+        ElseIf ext = "prj"
         {
-            set fileName = ..filename($replace(className,"-","/"), directory)
-            do ..mkdir(fileName)
-            do ..fixXMLLine(className, fileName)
+            // Skip the export of studio project definitions
+            Set rSC = $$$OK
         }
-        
+        Else
+        {
+            Set fileName = ..filename($REPLACE(className,"-","/"), directory)
+            Do ..mkdir(fileName)
+            Do ..fixXMLLine(className, fileName)
+        }
         Set rSC = $$$OK
     } Catch tSE {
         Set rSC = tSE.AsStatus()
@@ -117,17 +121,17 @@ ClassMethod exportClassAndRoutine(className As %String, directory As %String) As
         #define isPercented(%code) ("%" = $e(%code))
         #define isMapped(%code) ##class(%RoutineMgr).IsMapped( %code )
         
-        if ($$$isGenerated(className)) return $$$OK
-        if ($$$isPercented(className)) return $$$OK
-        if ($$$isMapped(className)) return $$$OK
+        If ($$$isGenerated(className)) Return $$$OK
+        If ($$$isPercented(className)) Return $$$OK
+        If ($$$isMapped(className)) Return $$$OK
         
-        set tFilename = ..filename(className, directory)
-        write "Export data: "
-        write "File = '", tFilename, "' | "
-        write "Class = '", className, "'"
-        write !
+        Set tFilename = ..filename(className, directory)
+        Write "Export data: "
+        Write "File = '", tFilename, "' | "
+        Write "Class = '", className, "'"
+        Write !
         $$$ThrowOnError(..mkdir(tFilename))
-        $$$ThrowOnError($system.OBJ.ExportUDL(className, tFilename))
+        $$$ThrowOnError($SYSTEM.OBJ.ExportUDL(className, tFilename))
         Set rSC = $$$OK
     } Catch tSE {
         Set rSC = tSE.AsStatus()
@@ -138,27 +142,27 @@ ClassMethod exportClassAndRoutine(className As %String, directory As %String) As
 
 ClassMethod mkdir(filename As %String) As %Status
 {
-	set sc = $$$OK
-	set path = ##class(%File).GetDirectory(filename)
-    if ($$$StringEndsWith(path, "/")) {
-        set path = $$$StringRemoveLast(path)
+	Set sc = $$$OK
+	Set path = ##class(%File).GetDirectory(filename)
+    If ($$$StringEndsWith(path, "/")) {
+        Set path = $$$StringRemoveLast(path)
     }
-	if '##class(%File).DirectoryExists(path) 
+	If '##class(%File).DirectoryExists(path) 
 	{
-        if ('$$$StringStartsWith(path, "/irisrun/udl-export")) {
-            set toCreate = "/irisrun/udl-export"_path
-        } else {
-            set toCreate = path
+        If ('$$$StringStartsWith(path, "/irisrun/udl-export")) {
+            Set toCreate = "/irisrun/udl-export"_path
+        } Else {
+            Set toCreate = path
         }
       
-        write !, "Directory does not exist. Creating: "_toCreate, ! 
-	    set tResult = ##class(%File).CreateDirectoryChain(toCreate, .tReturn)
-        write "Directory create status: ", tResult, !
-        if ('tResult) {
-            zwrite tReturn
+        Write !, "Directory does not exist. Creating: "_toCreate, ! 
+	    Set tResult = ##class(%File).CreateDirectoryChain(toCreate, .tReturn)
+        Write "Directory create status: ", tResult, !
+        If ('tResult) {
+            ZWrite tReturn
         }
 	}
-	return sc
+	Return sc
 }
 
 // From: https://github.com/intersystems-community/isc-dev/blob/master/src/dev/code.cls
@@ -167,68 +171,72 @@ ClassMethod filename(code As %String, directory As %String)
 {
 	#define log(%dir,%sc) w "mkdir ", %dir, " ", sc, !
 
-	set wd = directory
+	Set wd = directory
 
-	if '##class(%File).DirectoryExists( wd ) {
-		set sc = ##class(%File).CreateDirectoryChain( wd )
+	If '##class(%File).DirectoryExists( wd ) {
+		Set sc = ##class(%File).CreateDirectoryChain( wd )
 		$$$log(wd,sc)
 	}
 
-	set ext = $p( code, ".", * ), ext = $zcvt( ext, "l" )
-    set splitFiles = ##class(%SYSTEM.Util).GetEnviron("SPLIT_FILES_IN_DIRECTORIES") = "true"
+	Set ext = $PIECE( code, ".", * ), ext = $ZCONVERT( ext, "l" )
+    Set splitFiles = ##class(%SYSTEM.Util).GetEnviron("SPLIT_FILES_IN_DIRECTORIES") = "true"
 	#; for each type - different directory
 	#; except cls,int,inc,mac
-    if (splitFiles) {
-        if ext'="cls",ext'="mac",ext'="int",ext'="inc",ext'="" set wd = ##class(%File).NormalizeDirectory( ext, wd )
+    #; 
+    Write "Directory: ",wd,!
+    If (splitFiles) {
+        If ext'="cls",ext'="mac",ext'="int",ext'="inc",ext'="" Set wd = ##class(%File).NormalizeDirectory( ext, wd )
     }
 
 	#; directory must exist before any call (%File).NormalizeFilename( , wd)
-	if '##class(%File).DirectoryExists( wd ) 
+	If '##class(%File).DirectoryExists( wd ) 
 	{
-		set sc = ##class(%File).CreateDirectoryChain( wd )
+		Set sc = ##class(%File).CreateDirectoryChain( wd )
 		$$$log(wd,sc)
 	}
 
-	set filename = ##class(%File).NormalizeFilename( code, wd )
+	Set filename = ##class(%File).NormalizeFilename( code, wd )
 	#; lowercase file extension
-	set $p(filename,".",*)=ext
+	Set $PIECE(filename,".",*)=ext
 	//B:code="DPRep.Rest.JSON.cls" "L"
 	#; for *.cls Package.Subpackage.ClassName.cls -> Folder/Subfolder/ClassName.cls
-    if (splitFiles) {
-        if (ext="cls") || (ext="gbl") 
+    If (splitFiles) {
+        If (ext="cls") || (ext="gbl") 
         {
-            set dirs = $piece( code, ".",1, *-2 ), dirs = $translate( dirs, ".", "/" )
-            set relpath = dirs _ "/" _ $piece( code, ".", *-1, * ) ;
-            set filename = ##class(%File).NormalizeFilename( relpath, wd )
+            Set dirs = $PIECE( code, ".",1, *-2 ), dirs = $TRANSLATE( dirs, ".", "/" )
+            Set relpath = dirs _ "/" _ $PIECE( code, ".", *-1, * ) ;
+            Set filename = ##class(%File).NormalizeFilename( relpath, wd )
         }
-    } else {
+    } Else {
         // Don't split hl7 by dots!
-        if (ext '= "hl7") {
-            set dirs = $piece( code, ".",1, *-2 ), dirs = $translate( dirs, ".", "/" )
-            set relpath = dirs _ "/" _ $piece( code, ".", *-1, * ) ;
-            set filename = ##class(%File).NormalizeFilename( relpath, wd )
+        If (ext '= "hl7") {
+            Set dirs = $PIECE( code, ".",1, *-2 ), dirs = $TRANSLATE( dirs, ".", "/" )
+            Set relpath = dirs _ "/" _ $PIECE( code, ".", *-1, * ) ;
+            Set filename = ##class(%File).NormalizeFilename( relpath, wd )
         }
-
     }
-	
-
-	return filename
+    // Make sure that the files are stored in the "src" directory of the project 
+    If ($FIND(filename,"irisrun/udl-export") = 0) {
+        Set filename = "/irisrun/udl-export"_filename
+    }
+    Write "Filename: ",filename,!
+	Return filename
 }
 
 ClassMethod fixXMLLine(documentName, filename) As %Status
 {
-    write "FixXMLLine documentName="_documentName_" and filename="_filename,!
-	set stream = ##class(%Stream.FileBinary).%New()
-	do stream.LinkToFile(filename)
-	do $system.OBJ.ExportToStream(documentName, .stream)
+    Write "FixXMLLine documentName="_documentName_" and filename="_filename,!
+	Set stream = ##class(%Stream.FileBinary).%New()
+	Do stream.LinkToFile(filename)
+	Do $SYSTEM.OBJ.ExportToStream(documentName, .stream)
 
-	set matcher=##class(%Regex.Matcher).%New("<Export generator=.+>")
-	set matcher.Text = stream.Read(stream.Size)
-	set data = matcher.ReplaceFirst("<Export generator=""Cache"">")
+	Set matcher=##class(%Regex.Matcher).%New("<Export generator=.+>")
+	Set matcher.Text = stream.Read(stream.Size)
+	Set data = matcher.ReplaceFirst("<Export generator=""Cache"">")
 	
-	do stream.Clear()
-	do stream.Write(data)
-	return stream.%Save()
+	Do stream.Clear()
+	Do stream.Write(data)
+	Return stream.%Save()
 }
 
 ClassMethod FixExportFile(tFileIn As %String, tFileOut As %String) As %Status
@@ -238,18 +246,18 @@ ClassMethod FixExportFile(tFileIn As %String, tFileOut As %String) As %Status
   Try {
     #dim tFile as %File
     #dim tOutStream as %Stream.FileCharacter
-    set tFile = ##class(%File).%New(tFileIn)
-    set tOutStream = ##class(%Stream.FileCharacter).%New()
-    set tOutStream.Filename = tFileOut
+    Set tFile = ##class(%File).%New(tFileIn)
+    Set tOutStream = ##class(%Stream.FileCharacter).%New()
+    Set tOutStream.Filename = tFileOut
     $$$ThrowOnError(tFile.Open("R"))
-    while 'tFile.AtEnd {
-        set tLine = tFile.ReadLine() 
-        set tFixedLine = $REPLACE(tLine, ".CON.", ".C0N.")
+    While 'tFile.AtEnd {
+        Set tLine = tFile.ReadLine() 
+        Set tFixedLine = $REPLACE(tLine, ".CON.", ".C0N.")
         $$$ThrowOnError(tOutStream.WriteLine(tFixedLine))
     }
-    do tOutStream.Flush()
-    do tOutStream.%Save()
-    do tFile.Close()
+    Do tOutStream.Flush()
+    Do tOutStream.%Save()
+    Do tFile.Close()
     Set rSC = $$$OK
   } Catch tSE {
     Set rSC = tSE.AsStatus()
