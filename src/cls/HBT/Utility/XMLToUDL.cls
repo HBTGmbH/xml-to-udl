@@ -91,11 +91,6 @@ ClassMethod ExportFile(className As %String, directory As %String) As %Status
             Do ..mkdir(fileName)
             Do ..fixXMLLine(className, fileName)
         }
-        ElseIf ext = "prj"
-        {
-            // Skip the export of studio project definitions
-            Set rSC = $$$OK
-        }
         Else
         {
             Set fileName = ..filename($REPLACE(className,"-","/"), directory)
