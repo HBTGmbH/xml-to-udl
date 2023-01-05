@@ -1,4 +1,4 @@
-FROM containers.intersystems.com/intersystems/iris-ml-community:2022.2.0.368.0
+FROM containers.intersystems.com/intersystems/irishealth-ml-community:2022.2.0.368.0
 
 USER root   
 ## add git
