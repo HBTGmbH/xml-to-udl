@@ -87,7 +87,13 @@ ClassMethod ExportFile(className As %String, directory As %String) As %Status
         ElseIf ext = "csp"
         {
             Set fileName = ..filename(className, directory)
-            Set fileName = "/irisrun/udl-export"_fileName
+            // Set fileName = "/irisrun/udl-export"_fileName
+            Do ..mkdir(fileName)
+            Do ..fixXMLLine(className, fileName)
+        }
+        ElseIf ext = "lut"
+        {
+            Set fileName = ..filename(className, directory)
             Do ..mkdir(fileName)
             Do ..fixXMLLine(className, fileName)
         }
