@@ -4,35 +4,6 @@ Include HBT.Utility
 Class HBT.Utility.XMLToUDL
 {
 
-/*
-TODO Refactoring
-
-Aufgaben:
-- Methoden nach NestorIT Standard refactoren+
-    - Try-Catch
-    - korrekte Benamung der Parameter (tAbc; pAbc etc.)
-    - Rückgabetyp %Status
-    - #Dim zur Deklaration der Variablen
-    - $$$ThrowOnError statt Do ##class()...
-
-
-Aufrufhierarchie:
-- ImportUDLFormDefault() wird aus dem Skript des entsprechende Projekts aufgerufen
-- ImportUDL() bekommt den Studio Export
-- FixExportFile() ersetzt zunächst die "CON" Bezeichnungen, damit die Ordner später unter Windows angelegt werden können
-- Das neue File wird abgelegt
-- Mit $SYSTEM.OBJ.Load() werden die Items aus dem Studio Export geladen und in einer Liste gespeichert
-- Für jedes Item (z.B. eine Klasse, eine LUT etc.) wird die Methode ExportFile() aufgerufen
-- Dort wird entschieden um was für einen Dateitypen es sich handelt
-- Für Klassen und Routinen wird die Methode ExportClassAndRoutine aufgerufen
-    - Für jedes Item wird die Methode CreateFileName() aufgerufen, um den korrekten Dateinamen zu erzeugen
-    - Für jedes Item wird die Methode MakeDirectory() aufgerufen und bei Bedarf ein entsprechendes Verzeichnis angelegt
-    - Abschließend wird die Klasse / Routine per $SYSTEM.OBJ.ExportUDL erzeugt und im korrekten Verzeichnis abgelegt
-- Für sonstiges Dateien wird die Methode ExportCommonItemsByExtension aufgerufen
-    - Für jedes Item wird die Methode CreateFileName() aufgerufen, um den korrekten Dateinamen zu erzeugen
-    - Für jedes Item wird die Methode MakeDirectory() aufgerufen und bei Bedarf ein entsprechendes Verzeichnis angelegt
-
-*/
 /// This method is the entrypoint for the transformation of the studio export file into UDL sources.
 /// The export process will be started for every item in the export, after it's verified that the item is not part of a ignore list. 
 ClassMethod ImportUDLFromDefault() As %Status
@@ -119,8 +90,7 @@ ClassMethod ExportFile(pItemName As %String, pDirectory As %String) As %Status
     Quit rSC
 }
 
-// From: https://github.com/intersystems-community/isc-dev/blob/master/src/dev/FileManExtension.cls
-
+/// This method triggers the export of classes and routines.
 ClassMethod ExportClassAndRoutine(pClassName As %String, pDirectory As %String) As %Status
 {
     #Dim tSC As %Status
@@ -165,7 +135,7 @@ ClassMethod ExportCommonItemsByExtension(pItemExtension As %String, pItemName As
             Set tFileName = ..CreateFileName($REPLACE(pItemName,"-","/"), pDirectory)
         }
         Do ..MakeDirectory(tFileName)
-        Do ..fixXMLLine(pItemName, tFileName)
+        Do ..FixXMLLine(pItemName, tFileName)
         Set tSC = $$$OK
     } Catch tSE {
         Set tSC = tSE.AsStatus()
@@ -173,42 +143,6 @@ ClassMethod ExportCommonItemsByExtension(pItemExtension As %String, pItemName As
     }
     Quit tSC
 }
-
-/// This method creates the directory for a specific file if it it does not exist yet.
-ClassMethod MakeDirectory(pFileName As %String) As %Status
-{
-    #Dim tSC As %Status
-    #Dim tSE As %Exception.StatusException
-    #Dim tPath As %String
-    #Dim tPathToCreate As %String
-
-    Try {
-        Set tPath = ##class(%File).GetDirectory(pFileName)
-        If ($$$StringEndsWith(tPath, "/")) {
-            Set tPath = $$$StringRemoveLast(tPath)
-        }
-        If '##class(%File).DirectoryExists(tPath){
-            If ('$$$StringStartsWith(tPath, "/irisrun/udl-export")) {
-                Set tPathToCreate = "/irisrun/udl-export"_tPath
-            } Else {
-                Set tPathToCreate = tPath
-            }
-            Write !, "Directory does not exist. Creating: "_tPathToCreate, ! 
-            Set tResult = ##class(%File).CreateDirectoryChain(tPathToCreate, .tReturn)
-            Write "Directory create status: ", tResult, !
-            If ('tResult) {
-                ZWrite tReturn
-            }
-	    }
-        Set tSC = $$$OK
-    } Catch tSE {
-        Set tSC = tSE.AsStatus()
-        Quit
-    }
-    Quit tSC
-}
-
-// From: https://github.com/intersystems-community/isc-dev/blob/master/src/dev/code.cls
 
 ClassMethod CreateFileName(pItemName As %String, pDirectory As %String) As %Status
 {
@@ -222,7 +156,7 @@ ClassMethod CreateFileName(pItemName As %String, pDirectory As %String) As %Stat
     #Dim tRelativePath As %String
 
     /// TODO Hier gibt es viele Dopplungen im Verleich zur Methode MakeDirectory(). In einem weiteren Schritt soll überprüft werden, ob man diese beiden Methode kombinieren kann,
-    /// Duplikationen zu vermeiden und den Code einfacher zu gestalten
+    /// um Duplikationen zu vermeiden und den Code einfacher zu gestalten.
     Try {
         Set tWorkingDirectory = pDirectory
         If '##class(%File).DirectoryExists(tWorkingDirectory) {
@@ -261,6 +195,7 @@ ClassMethod CreateFileName(pItemName As %String, pDirectory As %String) As %Stat
                 Set tFileName = ##class(%File).NormalizeFilename(tRelativePath, tWorkingDirectory)
             }
         }
+        // TODO Diese Sicherheitsabfrage wird in MakeDir() ähnlich gemacht (ein weiterer Hinweise, dass hier Dinge doppelt gemacht werden)
         // Make sure that the files are stored in the "src" directory of the project 
         If ('$FIND(tFileName, "/irisrun/udl-export/")) {
             Set tFileName = "/irisrun/udl-export/"_tFileName
@@ -276,20 +211,65 @@ ClassMethod CreateFileName(pItemName As %String, pDirectory As %String) As %Stat
     Quit tSC
 }
 
-ClassMethod fixXMLLine(documentName, filename) As %Status
+/// This method creates the directory for a specific file if it it does not exist yet.
+ClassMethod MakeDirectory(pFileName As %String) As %Status
 {
-    Write "FixXMLLine documentName="_documentName_" and filename="_filename,!
-	Set stream = ##class(%Stream.FileBinary).%New()
-	Do stream.LinkToFile(filename)
-	Do $SYSTEM.OBJ.ExportToStream(documentName, .stream)
+    #Dim tSC As %Status
+    #Dim tSE As %Exception.StatusException
+    #Dim tPath As %String
+    #Dim tPathToCreate As %String
 
-	Set matcher=##class(%Regex.Matcher).%New("<Export generator=.+>")
-	Set matcher.Text = stream.Read(stream.Size)
-	Set data = matcher.ReplaceFirst("<Export generator=""Cache"">")
-	
-	Do stream.Clear()
-	Do stream.Write(data)
-	Return stream.%Save()
+    Try {
+        Set tPath = ##class(%File).GetDirectory(pFileName)
+        If ($$$StringEndsWith(tPath, "/")) {
+            Set tPath = $$$StringRemoveLast(tPath)
+        }
+        If '##class(%File).DirectoryExists(tPath){
+            If ('$$$StringStartsWith(tPath, "/irisrun/udl-export")) {
+                Set tPathToCreate = "/irisrun/udl-export"_tPath
+            } Else {
+                Set tPathToCreate = tPath
+            }
+            Write !, "Directory does not exist. Creating: "_tPathToCreate, ! 
+            Set tResult = ##class(%File).CreateDirectoryChain(tPathToCreate, .tReturn)
+            Write "Directory create status: ", tResult, !
+            If ('tResult) {
+                ZWrite tReturn
+            }
+	    }
+        Set tSC = $$$OK
+    } Catch tSE {
+        Set tSC = tSE.AsStatus()
+        Quit
+    }
+    Quit tSC
+}
+
+/// This method replaces a tag in the XML body (for example in .lut and .hl7) to assure downward compatibility from IRIS to Caché.
+ClassMethod FixXMLLine(pDocumentName As %String, pFileName As %String) As %Status
+{
+    #Dim tSC As %Status
+    #Dim tSE As %Exception.StatusException
+    #Dim tFileStream As %Stream.FileBinary
+    #Dim tRegExMatcher As %Regex.Matcher
+    #Dim tData As %String
+
+    Try {
+        Write "FixXMLLine documentName="_pDocumentName_" and filename="_pFileName,!
+	    Set tFileStream = ##class(%Stream.FileBinary).%New()
+        $$$ThrowOnError(tFileStream.LinkToFile(pFileName))
+        $$$ThrowOnError($SYSTEM.OBJ.ExportToStream(pDocumentName, .tFileStream))
+        Set tRegExMatcher = ##class(%Regex.Matcher).%New("<Export generator=.+>")
+	    Set tRegExMatcher.Text = tFileStream.Read(tFileStream.Size)
+	    Set tData = tRegExMatcher.ReplaceFirst("<Export generator=""Cache"">")
+        $$$ThrowOnError(tFileStream.Write(tData))
+        $$$ThrowOnError(tFileStream.%Save())
+        Set tSC = $$$OK
+    } Catch tSE {
+        Set tSC = tSE.AsStatus()
+        Quit
+    }
+    Quit tSC
 }
 
 /// This method replaces all occurences of the String "CON" within in the Studio export file.
