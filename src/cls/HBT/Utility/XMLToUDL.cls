@@ -4,6 +4,76 @@ Include HBT.Utility
 Class HBT.Utility.XMLToUDL
 {
 
+Parameter DIRECTORY = "/irisrun/udl-export/";
+
+ClassMethod Main() As %Status
+{
+    #Dim tSC As %Status
+    #Dim tSE As %Exception.StatusException
+    
+    Try {
+        Set tLocation = "/irisrun/udl-export/aa/studio-export.xml"
+        Set tWorkingDirectory = ..#DIRECTORY
+        Write !,"Working Directory: ", tWorkingDirectory,!
+        If '##class(%File).DirectoryExists(tWorkingDirectory) {
+		    $$$ThrowOnError(##class(%File).CreateDirectoryChain(tWorkingDirectory))
+	    }
+        Do $SYSTEM.OBJ.Load(tLocation,"",.%errorlog,.tImportedItems,0,,)
+        Set tItemList = $LISTFROMSTRING(tImportedItems, ",")
+        For i=1:1:$LISTLENGTH(tItemList) {
+            Set tItemName = $LIST(tItemList,i)
+            $$$ThrowOnError(..ExportItem(tItemName))
+        }
+        Set tSC = $$$OK
+    } Catch tSE {
+        Set tSC = tSE.AsStatus()
+        Quit
+    }
+    Quit tSC
+}
+
+ClassMethod ExportItem(pItemName As %String) As %Status
+{
+    #Dim tSC As %Status
+    #Dim tSE As %Exception.StatusException
+    
+    Try {
+        Write !,"Exporting Item: ", pItemName,!
+        // TODO Decide which method should be used depending on the type
+        // global, class, routine, csp, project, document
+        Set tItemExtension = $ZCONVERT($PIECE(pItemName,".",*), "l")
+        If (tItemExtension = "cls") {
+            $$$ThrowOnError(..ExportClass(pItemName))
+        }
+        Set tSC = $$$OK
+    } Catch tSE {
+        Set tSC = tSE.AsStatus()
+        Quit
+    }
+    Quit tSC
+}
+
+ClassMethod ExportClass(pItemName As %String) As %Status
+{
+    #Dim tSC As %Status
+    #Dim tSE As %Exception.StatusException
+    
+    Try {
+        Write !,"Exporting Class: ", pItemName,!
+        Set tDirectory = $PIECE(pItemName, ".",1, *-2 )
+        Set tDirectory = $TRANSLATE(tDirectory, ".", "/")
+        Set tRelativePath = tDirectory_"/"_$PIECE(pItemName, ".", *-1, *)
+        Set tFileName = ##class(%File).NormalizeFilename(tRelativePath, ..#DIRECTORY)
+        Write "Filename: ",tFileName,!
+        $$$ThrowOnError($SYSTEM.OBJ.ExportUDL(pItemName, tFileName))
+        Set tSC = $$$OK
+    } Catch tSE {
+        Set tSC = tSE.AsStatus()
+        Quit
+    }
+    Quit tSC
+}
+
 /// This method is the entrypoint for the transformation of the studio export file into UDL sources.
 /// The export process will be started for every item in the export, after it's verified that the item is not part of a ignore list. 
 ClassMethod ImportUDLFromDefault() As %Status
