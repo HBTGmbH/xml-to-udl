@@ -20,7 +20,9 @@ Aufrufhierarchie:
 - ImportUDLFormDefault() wird aus dem Skript des entsprechende Projekts aufgerufen
 - ImportUDL() bekommt den Studio Export
 - FixExportFile() ersetzt zunächst die "CON" Bezeichnungen, damit die Ordner später unter Windows angelegt werden können
-- 
+- Das neue File wird abgelegt
+- Mit $SYSTEM.OBJ.Load() werden die Items aus dem Studio Export geladen und in einer Liste gespeichert
+- Für jedes Item (z.B. eine Klasse, eine LUT etc.) wird die Methode ExportFile() aufgerufen
 
 
 */
@@ -70,61 +72,85 @@ ClassMethod ImportUDL(pLocation As %String) As %Status
     Quit rSC
 }
 
-ClassMethod ExportFile(className As %String, directory As %String) As %Status
+/// This method checks if a item within the studio export is part of a list of filenames that should be ignored.
+/// If it is part of the list, "oIgnoreItem" will be TRUE.
+/// You can add more files to "tIgnoreList" if needed.
+ClassMethod GetIgnoreStatus(pItemName As %String, Output oIgnoreItem As %Boolean) As %Status
 {
-    #Dim rSC As %Status
+    #Dim tSC As %Status
     #Dim tSE As %Exception.StatusException
+    #Dim tIgnoreList As List of %String
+    
     Try {
-        Set ignorList = $LISTBUILD("dev.code.CLS",
+        Set tIgnoreList = $LISTBUILD("dev.code.CLS",
 						"dev.deepsee.CLS",
 						"dev.FileManExtension.CLS",
 						"dev.diff.gitHub.CLS",
 						"dev.diff.gitLocal.CLS",
 						"dev.diff.utils.CLS")
-        Return:$LISTFIND(ignorList, className)=1 $$$OK
-                            
-        Set classAndRoutinesExts = $LISTBUILD("cls","mac","int","inc")
-        
-        Set ext = $ZCONVERT($PIECE(className,".",*), "l")
-        Write "Extension:", ext, !
-        
-        If $LISTFIND(classAndRoutinesExts, ext)
-        {
-            Do ..exportClassAndRoutine($PIECE(className, ".", 1, *-1)_"."_ext, directory)
-        }
-        ElseIf ext = "dfi"
-        {
-            Set fileName = ..filename($REPLACE(className,"-","/"))
-            Set fileName = $EXTRACT(fileName,1,*-4)_".xml"
+        Set oIgnoreItem = $LISTFIND(tIgnoreList, pItemName)
+        Set tSC = $$$OK
+    } Catch tSE {
+        Set tSC = tSE.AsStatus()
+        Quit
+    }
+    Quit tSC
+}
+
+ClassMethod ExportFile(pItemName As %String, pDirectory As %String) As %Status
+{
+    #Dim rSC As %Status
+    #Dim tSE As %Exception.StatusException
+
+    Try {
+        $$$ThrowOnError(..GetIgnoreStatus(pItemName, .pIgnoreItem))
+        If ('pIgnoreItem) {
+            Set classAndRoutinesExts = $LISTBUILD("cls","mac","int","inc")
             
-            Do ..mkdir(fileName)
-            Do ..fixXMLLine(className, fileName)
+            Set ext = $ZCONVERT($PIECE(pItemName,".",*), "l")
+            Write "Extension:", ext, !
+            
+            If $LISTFIND(classAndRoutinesExts, ext)
+            {
+                Do ..exportClassAndRoutine($PIECE(pItemName, ".", 1, *-1)_"."_ext, pDirectory)
+            }
+            ElseIf ext = "dfi"
+            {
+                Set fileName = ..filename($REPLACE(pItemName,"-","/"))
+                Set fileName = $EXTRACT(fileName,1,*-4)_".xml"
+                
+                Do ..mkdir(fileName)
+                Do ..fixXMLLine(pItemName, fileName)
+            }
+            ElseIf ext = "hl7"
+            {
+                Set fileName = ..filename(pItemName, pDirectory)
+                Do ..mkdir(fileName)
+                Do ..fixXMLLine(pItemName, fileName)
+            }
+            ElseIf ext = "csp"
+            {
+                Set fileName = ..filename(pItemName, pDirectory)
+                // Set fileName = "/irisrun/udl-export"_fileName
+                Do ..mkdir(fileName)
+                Do ..fixXMLLine(pItemName, fileName)
+            }
+            ElseIf ext = "lut"
+            {
+                Set fileName = ..filename(pItemName, pDirectory)
+                Do ..mkdir(fileName)
+                Do ..fixXMLLine(pItemName, fileName)
+            }
+            Else
+            {
+                Set fileName = ..filename($REPLACE(pItemName,"-","/"), pDirectory)
+                Do ..mkdir(fileName)
+                Do ..fixXMLLine(pItemName, fileName)
+            }
+
         }
-        ElseIf ext = "hl7"
-        {
-            Set fileName = ..filename(className, directory)
-            Do ..mkdir(fileName)
-            Do ..fixXMLLine(className, fileName)
-        }
-        ElseIf ext = "csp"
-        {
-            Set fileName = ..filename(className, directory)
-            // Set fileName = "/irisrun/udl-export"_fileName
-            Do ..mkdir(fileName)
-            Do ..fixXMLLine(className, fileName)
-        }
-        ElseIf ext = "lut"
-        {
-            Set fileName = ..filename(className, directory)
-            Do ..mkdir(fileName)
-            Do ..fixXMLLine(className, fileName)
-        }
-        Else
-        {
-            Set fileName = ..filename($REPLACE(className,"-","/"), directory)
-            Do ..mkdir(fileName)
-            Do ..fixXMLLine(className, fileName)
-        }
+
+
         Set rSC = $$$OK
     } Catch tSE {
         Set rSC = tSE.AsStatus()
@@ -262,6 +288,9 @@ ClassMethod fixXMLLine(documentName, filename) As %Status
 	Return stream.%Save()
 }
 
+/// This method replaces all occurences of the String "CON" within in the Studio export file.
+/// This is necessary because it's not allowed to create folders that are named "CON" on Windows machines.
+/// A pipeline command will do the opposite when the sources are transformed back into a export.xml.
 ClassMethod FixExportFile(pFileIn As %String, pFileOut As %String) As %Status
 {
   #Dim tSC As %Status
