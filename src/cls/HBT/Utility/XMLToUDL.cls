@@ -94,6 +94,8 @@ ClassMethod ExportFile(pItemName As %String, pDirectory As %String) As %Status
 {
     #Dim rSC As %Status
     #Dim tSE As %Exception.StatusException
+    #Dim tClassAndRoutinesExtensions As List of %String
+    #Dim tItemExtension As %String
 
     Try {
         Set tClassAndRoutinesExtensions = $LISTBUILD("cls","mac","int","inc")
@@ -114,32 +116,29 @@ ClassMethod ExportFile(pItemName As %String, pDirectory As %String) As %Status
 
 // From: https://github.com/intersystems-community/isc-dev/blob/master/src/dev/FileManExtension.cls
 
-ClassMethod ExportClassAndRoutine(className As %String, directory As %String) As %Status
+ClassMethod ExportClassAndRoutine(pClassName As %String, pDirectory As %String) As %Status
 {
-    #Dim rSC As %Status
+    #Dim tSC As %Status
     #Dim tSE As %Exception.StatusException
+    #Dim tFileName As %String
+
     Try {
-        #define isGenerated(%code) ##class(%RoutineMgr).IsGenerated( %code )
-        #define isPercented(%code) ("%" = $e(%code))
-        #define isMapped(%code) ##class(%RoutineMgr).IsMapped( %code )
+        If ($$$isGenerated(pClassName)) Return $$$OK
+        If ($$$isPercented(pClassName)) Return $$$OK
+        If ($$$isMapped(pClassName)) Return $$$OK
         
-        If ($$$isGenerated(className)) Return $$$OK
-        If ($$$isPercented(className)) Return $$$OK
-        If ($$$isMapped(className)) Return $$$OK
-        
-        Set tFilename = ..filename(className, directory)
-        Write "Export data: "
-        Write "File = '", tFilename, "' | "
-        Write "Class = '", className, "'"
-        Write !
-        $$$ThrowOnError(..mkdir(tFilename))
-        $$$ThrowOnError($SYSTEM.OBJ.ExportUDL(className, tFilename))
-        Set rSC = $$$OK
+        Set tFileName = ..filename(pClassName, pDirectory)
+        Write "Export data ...",!
+        Write "File: '", tFileName,!
+        Write "Class: '", pClassName,!
+        $$$ThrowOnError(..mkdir(tFileName))
+        $$$ThrowOnError($SYSTEM.OBJ.ExportUDL(pClassName, tFileName))
+        Set tSC = $$$OK
     } Catch tSE {
-        Set rSC = tSE.AsStatus()
+        Set tSC = tSE.AsStatus()
         Quit
     }
-    Quit rSC
+    Quit tSC
 }
 
 /// This method triggers the export of common files that are not classes or routines (for example .hl7 or .lut files).
@@ -148,6 +147,7 @@ ClassMethod ExportCommonItemsByExtension(pItemExtension As %String, pItemName As
 {
     #Dim tSC As %Status
     #Dim tSE As %Exception.StatusException
+    #Dim tFileName As %String
     
     Try {
         If (pItemExtension = "hl7") || (pItemExtension = "csp") || (pItemExtension = "lut") {
