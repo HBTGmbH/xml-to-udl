@@ -25,7 +25,12 @@ Aufrufhierarchie:
 - Für jedes Item (z.B. eine Klasse, eine LUT etc.) wird die Methode ExportFile() aufgerufen
 - Dort wird entschieden um was für einen Dateitypen es sich handelt
 - Für Klassen und Routinen wird die Methode ExportClassAndRoutine aufgerufen
+    - Für jedes Item wird die Methode CreateFileName() aufgerufen, um den korrekten Dateinamen zu erzeugen
+    - Für jedes Item wird die Methode MakeDirectory() aufgerufen und bei Bedarf ein entsprechendes Verzeichnis angelegt
+    - Abschließend wird die Klasse / Routine per $SYSTEM.OBJ.ExportUDL erzeugt und im korrekten Verzeichnis abgelegt
 - Für sonstiges Dateien wird die Methode ExportCommonItemsByExtension aufgerufen
+    - Für jedes Item wird die Methode CreateFileName() aufgerufen, um den korrekten Dateinamen zu erzeugen
+    - Für jedes Item wird die Methode MakeDirectory() aufgerufen und bei Bedarf ein entsprechendes Verzeichnis angelegt
 
 */
 /// This method is the entrypoint for the transformation of the studio export file into UDL sources.
@@ -128,7 +133,7 @@ ClassMethod ExportClassAndRoutine(pClassName As %String, pDirectory As %String) 
         If ($$$isPercented(pClassName)) Return $$$OK
         If ($$$isMapped(pClassName)) Return $$$OK
         
-        Set tFileName = ..filename(pClassName, pDirectory)
+        Set tFileName = ..CreateFileName(pClassName, pDirectory)
         Write "Export data ...",!
         Write "File: '", tFileName,!
         Write "Class: '", pClassName,!
@@ -152,12 +157,12 @@ ClassMethod ExportCommonItemsByExtension(pItemExtension As %String, pItemName As
     
     Try {
         If (pItemExtension = "hl7") || (pItemExtension = "csp") || (pItemExtension = "lut") {
-            Set tFileName = ..filename(pItemName, pDirectory)
+            Set tFileName = ..CreateFileName(pItemName, pDirectory)
         } ElseIf (pItemExtension = "dfi") {
-            Set tFileName = ..filename($REPLACE(pItemName,"-","/"))
+            Set tFileName = ..CreateFileName($REPLACE(pItemName,"-","/"))
             Set tFileName = $EXTRACT(tFileName,1,*-4)_".xml"
         } Else {
-            Set tFileName = ..filename($REPLACE(pItemName,"-","/"), pDirectory)
+            Set tFileName = ..CreateFileName($REPLACE(pItemName,"-","/"), pDirectory)
         }
         Do ..MakeDirectory(tFileName)
         Do ..fixXMLLine(pItemName, tFileName)
@@ -205,58 +210,70 @@ ClassMethod MakeDirectory(pFileName As %String) As %Status
 
 // From: https://github.com/intersystems-community/isc-dev/blob/master/src/dev/code.cls
 
-ClassMethod filename(code As %String, directory As %String)
+ClassMethod CreateFileName(pItemName As %String, pDirectory As %String) As %Status
 {
-	Set wd = directory
+    #Dim tSC As %Status
+    #Dim tSE As %Exception.StatusException
+    #Dim tWorkingDirectory As %String
+    #Dim tExtension As %String
+    #Dim tSplitFiles As %Boolean
+    #Dim tFileName As %String
+    #Dim tDirectory As %String
+    #Dim tRelativePath As %String
 
-	If '##class(%File).DirectoryExists( wd ) {
-		Set sc = ##class(%File).CreateDirectoryChain( wd )
-		$$$log(wd,sc)
-	}
-
-	Set ext = $PIECE( code, ".", * ), ext = $ZCONVERT( ext, "l" )
-    Set splitFiles = ##class(%SYSTEM.Util).GetEnviron("SPLIT_FILES_IN_DIRECTORIES") = "true"
-	#; for each type - different directory
-	#; except cls,int,inc,mac
-    #; 
-    Write "Directory: ",wd,!
-    If (splitFiles) {
-        If ext'="cls",ext'="mac",ext'="int",ext'="inc",ext'="" Set wd = ##class(%File).NormalizeDirectory( ext, wd )
-    }
-
-	#; directory must exist before any call (%File).NormalizeFilename( , wd)
-	If '##class(%File).DirectoryExists( wd ) 
-	{
-		Set sc = ##class(%File).CreateDirectoryChain( wd )
-		$$$log(wd,sc)
-	}
-
-	Set filename = ##class(%File).NormalizeFilename( code, wd )
-	#; lowercase file extension
-	Set $PIECE(filename,".",*)=ext
-	//B:code="DPRep.Rest.JSON.cls" "L"
-	#; for *.cls Package.Subpackage.ClassName.cls -> Folder/Subfolder/ClassName.cls
-    If (splitFiles) {
-        If (ext="cls") || (ext="gbl") 
-        {
-            Set dirs = $PIECE( code, ".",1, *-2 ), dirs = $TRANSLATE( dirs, ".", "/" )
-            Set relpath = dirs _ "/" _ $PIECE( code, ".", *-1, * ) ;
-            Set filename = ##class(%File).NormalizeFilename( relpath, wd )
+    /// TODO Hier gibt es viele Dopplungen im Verleich zur Methode MakeDirectory(). In einem weiteren Schritt soll überprüft werden, ob man diese beiden Methode kombinieren kann,
+    /// Duplikationen zu vermeiden und den Code einfacher zu gestalten
+    Try {
+        Set tWorkingDirectory = pDirectory
+        If '##class(%File).DirectoryExists(tWorkingDirectory) {
+		    $$$ThrowOnError(##class(%File).CreateDirectoryChain(tWorkingDirectory))
+	    }
+        Set tExtension = $PIECE(pItemName, ".", *)
+        Set tExtension = $ZCONVERT(tExtension, "l")
+        Set tSplitFiles = ##class(%SYSTEM.Util).GetEnviron("SPLIT_FILES_IN_DIRECTORIES") = "true"
+        
+        Write "Directory: ",tWorkingDirectory,!
+        If (tSplitFiles) {
+            // TODO mit $LIST arbeiten (ähnlich wie in ExportFile())
+            If (tExtension'="cls") || (tExtension'="mac") || (tExtension'="int") || (tExtension'="inc") || (tExtension'="") {
+                Set tWorkingDirectory = ##class(%File).NormalizeDirectory(tExtension, tWorkingDirectory)
+            }
         }
-    } Else {
-        // Don't split hl7 by dots!
-        If (ext '= "hl7") {
-            Set dirs = $PIECE( code, ".",1, *-2 ), dirs = $TRANSLATE( dirs, ".", "/" )
-            Set relpath = dirs _ "/" _ $PIECE( code, ".", *-1, * ) ;
-            Set filename = ##class(%File).NormalizeFilename( relpath, wd )
+
+        If '##class(%File).DirectoryExists(tWorkingDirectory) {
+		    $$$ThrowOnError(##class(%File).CreateDirectoryChain(tWorkingDirectory))
+	    }
+        Set tFileName = ##class(%File).NormalizeFilename(pItemName,tWorkingDirectory)
+
+        If (tSplitFiles) {
+            If (tExtension="cls") || (tExtension="gbl") {
+                Set tDirectory = $PIECE(pItemName, ".",1, *-2)
+                Set tDirectory = $TRANSLATE(tDirectory, ".", "/")
+                Set tRelativePath = tDirectory_"/"_$PIECE(pItemName, ".", *-1, *)
+                Set tFileName = ##class(%File).NormalizeFilename(tRelativePath, tWorkingDirectory)
+            } 
+        } Else {
+            // Don't split hl7 by dots!
+            If (tExtension '= "hl7") {
+                Set tDirectory = $PIECE(pItemName, ".",1, *-2 )
+                Set tDirectory = $TRANSLATE(tDirectory, ".", "/")
+                Set tRelativePath = tDirectory_"/"_$PIECE(pItemName, ".", *-1, *)
+                Set tFileName = ##class(%File).NormalizeFilename(tRelativePath, tWorkingDirectory)
+            }
         }
+        // Make sure that the files are stored in the "src" directory of the project 
+        If ('$FIND(tFileName, "/irisrun/udl-export/")) {
+            Set tFileName = "/irisrun/udl-export/"_tFileName
+        }
+        Write "Filename: ",tFileName,!
+        Return tFileName
+        Set tSC = $$$OK
     }
-    // Make sure that the files are stored in the "src" directory of the project 
-    If ($FIND(filename,"irisrun/udl-export") = 0) {
-        Set filename = "/irisrun/udl-export"_filename
-    }
-    Write "Filename: ",filename,!
-	Return filename
+    Catch tSE {
+            Set tSC = tSE.AsStatus()
+            Quit
+        }
+    Quit tSC
 }
 
 ClassMethod fixXMLLine(documentName, filename) As %Status
