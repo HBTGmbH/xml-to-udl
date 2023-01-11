@@ -94,47 +94,15 @@ ClassMethod ExportFile(pItemName As %String, pDirectory As %String) As %Status
     #Dim tSE As %Exception.StatusException
 
     Try {
-        Set classAndRoutinesExts = $LISTBUILD("cls","mac","int","inc")
+        Set tClassAndRoutinesExtensions = $LISTBUILD("cls","mac","int","inc")
         
-        Set ext = $ZCONVERT($PIECE(pItemName,".",*), "l")
-        Write "Extension:", ext, !
+        Set tItemExtension = $ZCONVERT($PIECE(pItemName,".",*), "l")
+        Write "Extension: ", tItemExtension, !
         
-        If $LISTFIND(classAndRoutinesExts, ext)
-        {
-            Do ..exportClassAndRoutine($PIECE(pItemName, ".", 1, *-1)_"."_ext, pDirectory)
-        }
-        ElseIf ext = "dfi"
-        {
-            Set fileName = ..filename($REPLACE(pItemName,"-","/"))
-            Set fileName = $EXTRACT(fileName,1,*-4)_".xml"
-            
-            Do ..mkdir(fileName)
-            Do ..fixXMLLine(pItemName, fileName)
-        }
-        ElseIf ext = "hl7"
-        {
-            Set fileName = ..filename(pItemName, pDirectory)
-            Do ..mkdir(fileName)
-            Do ..fixXMLLine(pItemName, fileName)
-        }
-        ElseIf ext = "csp"
-        {
-            Set fileName = ..filename(pItemName, pDirectory)
-            // Set fileName = "/irisrun/udl-export"_fileName
-            Do ..mkdir(fileName)
-            Do ..fixXMLLine(pItemName, fileName)
-        }
-        ElseIf ext = "lut"
-        {
-            Set fileName = ..filename(pItemName, pDirectory)
-            Do ..mkdir(fileName)
-            Do ..fixXMLLine(pItemName, fileName)
-        }
-        Else
-        {
-            Set fileName = ..filename($REPLACE(pItemName,"-","/"), pDirectory)
-            Do ..mkdir(fileName)
-            Do ..fixXMLLine(pItemName, fileName)
+        If $LISTFIND(tClassAndRoutinesExtensions, tItemExtension) {
+            Do ..exportClassAndRoutine($PIECE(pItemName, ".", 1, *-1)_"."_tItemExtension, pDirectory)
+        } Else {
+            $$$ThrowOnError(..ExportCommonItemsByExtension(tItemExtension,pItemName,pDirectory))
         }
         Set rSC = $$$OK
     } Catch tSE {
@@ -142,6 +110,32 @@ ClassMethod ExportFile(pItemName As %String, pDirectory As %String) As %Status
         Quit
     }
     Quit rSC
+}
+
+/// This method triggers the export of common files that are not classes or routines (for example .hl7 or .lut files).
+/// Depending on the file type, the file name will set accordingly.
+ClassMethod ExportCommonItemsByExtension(pItemExtension As %String, pItemName As %String, pDirectory As %String) As %Status
+{
+    #Dim tSC As %Status
+    #Dim tSE As %Exception.StatusException
+    
+    Try {
+        If (pItemExtension = "hl7") || (pItemExtension = "csp") || (pItemExtension = "lut") {
+            Set tFileName = ..filename(pItemName, pDirectory)
+        } ElseIf (pItemExtension = "dfi") {
+            Set tFileName = ..filename($REPLACE(pItemName,"-","/"))
+            Set tFileName = $EXTRACT(tFileName,1,*-4)_".xml"
+        } Else {
+            Set tFileName = ..filename($REPLACE(pItemName,"-","/"), pDirectory)
+        }
+        Do ..mkdir(tFileName)
+        Do ..fixXMLLine(pItemName, tFileName)
+        Set tSC = $$$OK
+    } Catch tSE {
+        Set tSC = tSE.AsStatus()
+        Quit
+    }
+    Quit tSC
 }
 
 // From: https://github.com/intersystems-community/isc-dev/blob/master/src/dev/FileManExtension.cls
