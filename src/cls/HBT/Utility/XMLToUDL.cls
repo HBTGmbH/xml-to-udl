@@ -26,50 +26,41 @@ Aufrufhierarchie:
 
 
 */
-
-// Call as zwrite ##class(HBT.Utility.XMLToUDL).ImportUDLFromDefault()
-
+/// This method is the entrypoint for the transformation of the studio export file into UDL sources.
+/// The export process will be started for every item in the export, after it's verified that the item is not part of a ignore list. 
 ClassMethod ImportUDLFromDefault() As %Status
 {
-    #Dim rSC As %Status
-    #Dim tSE As %Exception.StatusException
-    Try {
-        // TODO switch back to $$$ThrowOnError(..ImportUDL("/irisrun/export.xml")) when refactoring is finished
-        $$$ThrowOnError(..ImportUDL("/irisrun/udl-export/aa/studio-export.xml"))
-        Set rSC = $$$OK
-    } Catch tSE {
-        Set rSC = tSE.AsStatus()
-        Quit
-    }
-    Quit rSC
-}
-
-// Call as zwrite ##class(HBT.Utility.XMLToUDL).ImportUDL("/path/to/udl")
-
-ClassMethod ImportUDL(pLocation As %String) As %Status
-{
-    #Dim rSC As %Status
+    #Dim tSC As %Status
     #Dim tSE As %Exception.StatusException
     #Dim tImportedItems as %String // CSV list of imported items
+    #Dim tLocation as %String
+    #Dim tFixedLocation as %String
+    #Dim tItemName as %String
+
     Try {
-        Write "Fixing export file",!
+        Set tLocation = "/irisrun/udl-export/aa/studio-export.xml"
         Set tFixedLocation = "/opt/irisbuild/export-fixed.xml"
-        $$$ThrowOnError(..FixExportFile(pLocation, tFixedLocation))
-        Write "Importing from location = '"_tFixedLocation,!
+        $$$ThrowOnError(..FixExportFile(tLocation, tFixedLocation))
+        Write "Importing from location: '"_tFixedLocation,!
         Do $SYSTEM.OBJ.Load(tFixedLocation,"",.%errorlog,.tImportedItems,0,,)
-        Write "Imported:",!, tImportedItems,!,!
+        Write "Imported: ",!, tImportedItems,!,!
         Set tItemList = $LISTFROMSTRING(tImportedItems, ",")
         For i=1:1:$LISTLENGTH(tItemList) {
-            Set tItem = $LIST(tItemList,i)
-            Write !,"Exporting Item ", tItem,!
-            $$$ThrowOnError(..ExportFile(tItem, "/irisrun/udl-export"))
+            Set tItemName = $LIST(tItemList,i)
+            $$$ThrowOnError(..GetIgnoreStatus(tItemName, .pIgnoreItem))
+            If ('pIgnoreItem) {
+                Write !,"Exporting Item: ", tItemName,!
+                $$$ThrowOnError(..ExportFile(tItemName, "/irisrun/udl-export"))
+            } Else {
+                Write !,"Skip exporting Item, because it's on the ignore list: ", tItemName,!
+            }
         }
-        Set rSC = $$$OK
+        Set tSC = $$$OK
     } Catch tSE {
-        Set rSC = tSE.AsStatus()
+        Set tSC = tSE.AsStatus()
         Quit
     }
-    Quit rSC
+    Quit tSC
 }
 
 /// This method checks if a item within the studio export is part of a list of filenames that should be ignored.
@@ -103,54 +94,48 @@ ClassMethod ExportFile(pItemName As %String, pDirectory As %String) As %Status
     #Dim tSE As %Exception.StatusException
 
     Try {
-        $$$ThrowOnError(..GetIgnoreStatus(pItemName, .pIgnoreItem))
-        If ('pIgnoreItem) {
-            Set classAndRoutinesExts = $LISTBUILD("cls","mac","int","inc")
-            
-            Set ext = $ZCONVERT($PIECE(pItemName,".",*), "l")
-            Write "Extension:", ext, !
-            
-            If $LISTFIND(classAndRoutinesExts, ext)
-            {
-                Do ..exportClassAndRoutine($PIECE(pItemName, ".", 1, *-1)_"."_ext, pDirectory)
-            }
-            ElseIf ext = "dfi"
-            {
-                Set fileName = ..filename($REPLACE(pItemName,"-","/"))
-                Set fileName = $EXTRACT(fileName,1,*-4)_".xml"
-                
-                Do ..mkdir(fileName)
-                Do ..fixXMLLine(pItemName, fileName)
-            }
-            ElseIf ext = "hl7"
-            {
-                Set fileName = ..filename(pItemName, pDirectory)
-                Do ..mkdir(fileName)
-                Do ..fixXMLLine(pItemName, fileName)
-            }
-            ElseIf ext = "csp"
-            {
-                Set fileName = ..filename(pItemName, pDirectory)
-                // Set fileName = "/irisrun/udl-export"_fileName
-                Do ..mkdir(fileName)
-                Do ..fixXMLLine(pItemName, fileName)
-            }
-            ElseIf ext = "lut"
-            {
-                Set fileName = ..filename(pItemName, pDirectory)
-                Do ..mkdir(fileName)
-                Do ..fixXMLLine(pItemName, fileName)
-            }
-            Else
-            {
-                Set fileName = ..filename($REPLACE(pItemName,"-","/"), pDirectory)
-                Do ..mkdir(fileName)
-                Do ..fixXMLLine(pItemName, fileName)
-            }
-
+        Set classAndRoutinesExts = $LISTBUILD("cls","mac","int","inc")
+        
+        Set ext = $ZCONVERT($PIECE(pItemName,".",*), "l")
+        Write "Extension:", ext, !
+        
+        If $LISTFIND(classAndRoutinesExts, ext)
+        {
+            Do ..exportClassAndRoutine($PIECE(pItemName, ".", 1, *-1)_"."_ext, pDirectory)
         }
-
-
+        ElseIf ext = "dfi"
+        {
+            Set fileName = ..filename($REPLACE(pItemName,"-","/"))
+            Set fileName = $EXTRACT(fileName,1,*-4)_".xml"
+            
+            Do ..mkdir(fileName)
+            Do ..fixXMLLine(pItemName, fileName)
+        }
+        ElseIf ext = "hl7"
+        {
+            Set fileName = ..filename(pItemName, pDirectory)
+            Do ..mkdir(fileName)
+            Do ..fixXMLLine(pItemName, fileName)
+        }
+        ElseIf ext = "csp"
+        {
+            Set fileName = ..filename(pItemName, pDirectory)
+            // Set fileName = "/irisrun/udl-export"_fileName
+            Do ..mkdir(fileName)
+            Do ..fixXMLLine(pItemName, fileName)
+        }
+        ElseIf ext = "lut"
+        {
+            Set fileName = ..filename(pItemName, pDirectory)
+            Do ..mkdir(fileName)
+            Do ..fixXMLLine(pItemName, fileName)
+        }
+        Else
+        {
+            Set fileName = ..filename($REPLACE(pItemName,"-","/"), pDirectory)
+            Do ..mkdir(fileName)
+            Do ..fixXMLLine(pItemName, fileName)
+        }
         Set rSC = $$$OK
     } Catch tSE {
         Set rSC = tSE.AsStatus()
@@ -299,6 +284,7 @@ ClassMethod FixExportFile(pFileIn As %String, pFileOut As %String) As %Status
   #Dim tOutStream as %Stream.FileCharacter
 
   Try {
+    Write "Fixing export file",!
     Set tFile = ##class(%File).%New(pFileIn)
     Set tOutStream = ##class(%Stream.FileCharacter).%New()
     Set tOutStream.Filename = pFileOut
