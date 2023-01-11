@@ -123,6 +123,7 @@ ClassMethod ExportClassAndRoutine(pClassName As %String, pDirectory As %String) 
     #Dim tFileName As %String
 
     Try {
+        // TODO Die If Abfragen kann man auch noch optimieren
         If ($$$isGenerated(pClassName)) Return $$$OK
         If ($$$isPercented(pClassName)) Return $$$OK
         If ($$$isMapped(pClassName)) Return $$$OK
@@ -131,7 +132,7 @@ ClassMethod ExportClassAndRoutine(pClassName As %String, pDirectory As %String) 
         Write "Export data ...",!
         Write "File: '", tFileName,!
         Write "Class: '", pClassName,!
-        $$$ThrowOnError(..mkdir(tFileName))
+        $$$ThrowOnError(..MakeDirectory(tFileName))
         $$$ThrowOnError($SYSTEM.OBJ.ExportUDL(pClassName, tFileName))
         Set tSC = $$$OK
     } Catch tSE {
@@ -158,7 +159,7 @@ ClassMethod ExportCommonItemsByExtension(pItemExtension As %String, pItemName As
         } Else {
             Set tFileName = ..filename($REPLACE(pItemName,"-","/"), pDirectory)
         }
-        Do ..mkdir(tFileName)
+        Do ..MakeDirectory(tFileName)
         Do ..fixXMLLine(pItemName, tFileName)
         Set tSC = $$$OK
     } Catch tSE {
@@ -168,37 +169,44 @@ ClassMethod ExportCommonItemsByExtension(pItemExtension As %String, pItemName As
     Quit tSC
 }
 
-ClassMethod mkdir(filename As %String) As %Status
+/// This method creates the directory for a specific file if it it does not exist yet.
+ClassMethod MakeDirectory(pFileName As %String) As %Status
 {
-	Set sc = $$$OK
-	Set path = ##class(%File).GetDirectory(filename)
-    If ($$$StringEndsWith(path, "/")) {
-        Set path = $$$StringRemoveLast(path)
+    #Dim tSC As %Status
+    #Dim tSE As %Exception.StatusException
+    #Dim tPath As %String
+    #Dim tPathToCreate As %String
+
+    Try {
+        Set tPath = ##class(%File).GetDirectory(pFileName)
+        If ($$$StringEndsWith(tPath, "/")) {
+            Set tPath = $$$StringRemoveLast(tPath)
+        }
+        If '##class(%File).DirectoryExists(tPath){
+            If ('$$$StringStartsWith(tPath, "/irisrun/udl-export")) {
+                Set tPathToCreate = "/irisrun/udl-export"_tPath
+            } Else {
+                Set tPathToCreate = tPath
+            }
+            Write !, "Directory does not exist. Creating: "_tPathToCreate, ! 
+            Set tResult = ##class(%File).CreateDirectoryChain(tPathToCreate, .tReturn)
+            Write "Directory create status: ", tResult, !
+            If ('tResult) {
+                ZWrite tReturn
+            }
+	    }
+        Set tSC = $$$OK
+    } Catch tSE {
+        Set tSC = tSE.AsStatus()
+        Quit
     }
-	If '##class(%File).DirectoryExists(path) 
-	{
-        If ('$$$StringStartsWith(path, "/irisrun/udl-export")) {
-            Set toCreate = "/irisrun/udl-export"_path
-        } Else {
-            Set toCreate = path
-        }
-      
-        Write !, "Directory does not exist. Creating: "_toCreate, ! 
-	    Set tResult = ##class(%File).CreateDirectoryChain(toCreate, .tReturn)
-        Write "Directory create status: ", tResult, !
-        If ('tResult) {
-            ZWrite tReturn
-        }
-	}
-	Return sc
+    Quit tSC
 }
 
 // From: https://github.com/intersystems-community/isc-dev/blob/master/src/dev/code.cls
 
 ClassMethod filename(code As %String, directory As %String)
 {
-	#define log(%dir,%sc) w "mkdir ", %dir, " ", sc, !
-
 	Set wd = directory
 
 	If '##class(%File).DirectoryExists( wd ) {

@@ -9,6 +9,8 @@ ROUTINE HBT.Utility [Type=INC]
 #Define StringToLower(%str) $ZCONVERT(%str, "L")
 #Define StringToUpper(%str) $ZCONVERT(%str, "Z")
 
-#Define isGenerated(%code) ##class(%RoutineMgr).IsGenerated( %code )
+#Define isGenerated(%code) ##class(%RoutineMgr).IsGenerated(%code)
 #Define isPercented(%code) ("%" = $e(%code))
-#Define isMapped(%code) ##class(%RoutineMgr).IsMapped( %code )
+#Define isMapped(%code) ##class(%RoutineMgr).IsMapped(%code)
+
+#Define log(%dir,%sc) w "mkdir ", %dir, " ", sc, !
