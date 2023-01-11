@@ -44,6 +44,8 @@ ClassMethod ExportItem(pItemName As %String) As %Status
         Set tItemExtension = $ZCONVERT($PIECE(pItemName,".",*), "l")
         If (tItemExtension = "cls") {
             $$$ThrowOnError(..ExportClass(pItemName))
+        } ElseIf (tItemExtension = "lut") {
+            $$$ThrowOnError(..ExportLUT(pItemName))
         }
         Set tSC = $$$OK
     } Catch tSE {
@@ -66,6 +68,32 @@ ClassMethod ExportClass(pItemName As %String) As %Status
         Set tFileName = ##class(%File).NormalizeFilename(tRelativePath, ..#DIRECTORY)
         Write "Filename: ",tFileName,!
         $$$ThrowOnError($SYSTEM.OBJ.ExportUDL(pItemName, tFileName))
+        Set tSC = $$$OK
+    } Catch tSE {
+        Set tSC = tSE.AsStatus()
+        Quit
+    }
+    Quit tSC
+}
+
+ClassMethod ExportLUT(pItemName As %String) As %Status
+{
+    #Dim tSC As %Status
+    #Dim tSE As %Exception.StatusException
+    
+    Try {
+        Write !,"Exporting Class: ", pItemName,!
+        Set tDirectory = $PIECE(pItemName, ".",1, *-2 )
+        Set tDirectory = $TRANSLATE(tDirectory, ".", "/")
+        Set tRelativePath = tDirectory_"/"_$PIECE(pItemName, ".", *-1, *)
+        Set tFileName = ##class(%File).NormalizeFilename(tRelativePath, ..#DIRECTORY)
+        Write "Filename: ",tFileName,!
+        If ('$FIND(tFileName, ..#DIRECTORY)) {
+            Set tFileName = $REPLACE(..#DIRECTORY_tFileName,"//","/")
+        }
+        Write "Filename: ",tFileName,!
+        // FIXME Funktioniert noch nicht bei "Package.Table.LUT"
+        $$$ThrowOnError(##class(cls.HBT.Utility.CustomizedHelper).FixXMLLine(pItemName, tFileName))
         Set tSC = $$$OK
     } Catch tSE {
         Set tSC = tSE.AsStatus()
