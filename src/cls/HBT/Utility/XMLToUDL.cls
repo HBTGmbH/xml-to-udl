@@ -4,6 +4,27 @@ Include HBT.Utility
 Class HBT.Utility.XMLToUDL
 {
 
+/*
+TODO Refactoring
+
+Aufgaben:
+- Methoden nach NestorIT Standard refactoren+
+    - Try-Catch
+    - korrekte Benamung der Parameter (tAbc; pAbc etc.)
+    - Rückgabetyp %Status
+    - #Dim zur Deklaration der Variablen
+    - $$$ThrowOnError statt Do ##class()...
+
+
+Aufrufhierarchie:
+- ImportUDLFormDefault() wird aus dem Skript des entsprechende Projekts aufgerufen
+- ImportUDL() bekommt den Studio Export
+- FixExportFile() ersetzt zunächst die "CON" Bezeichnungen, damit die Ordner später unter Windows angelegt werden können
+- 
+
+
+*/
+
 // Call as zwrite ##class(HBT.Utility.XMLToUDL).ImportUDLFromDefault()
 
 ClassMethod ImportUDLFromDefault() As %Status
@@ -11,7 +32,8 @@ ClassMethod ImportUDLFromDefault() As %Status
     #Dim rSC As %Status
     #Dim tSE As %Exception.StatusException
     Try {
-        $$$ThrowOnError(..ImportUDL("/irisrun/export.xml"))
+        // TODO switch back to $$$ThrowOnError(..ImportUDL("/irisrun/export.xml")) when refactoring is finished
+        $$$ThrowOnError(..ImportUDL("/irisrun/udl-export/aa/studio-export.xml"))
         Set rSC = $$$OK
     } Catch tSE {
         Set rSC = tSE.AsStatus()
@@ -240,31 +262,34 @@ ClassMethod fixXMLLine(documentName, filename) As %Status
 	Return stream.%Save()
 }
 
-ClassMethod FixExportFile(tFileIn As %String, tFileOut As %String) As %Status
+ClassMethod FixExportFile(pFileIn As %String, pFileOut As %String) As %Status
 {
-  #Dim rSC As %Status
+  #Dim tSC As %Status
   #Dim tSE As %Exception.StatusException
+  #Dim tFile as %File
+  #Dim tOutStream as %Stream.FileCharacter
+
   Try {
-    #dim tFile as %File
-    #dim tOutStream as %Stream.FileCharacter
-    Set tFile = ##class(%File).%New(tFileIn)
+    Set tFile = ##class(%File).%New(pFileIn)
     Set tOutStream = ##class(%Stream.FileCharacter).%New()
-    Set tOutStream.Filename = tFileOut
+    Set tOutStream.Filename = pFileOut
     $$$ThrowOnError(tFile.Open("R"))
     While 'tFile.AtEnd {
         Set tLine = tFile.ReadLine() 
         Set tFixedLine = $REPLACE(tLine, ".CON.", ".C0N.")
         $$$ThrowOnError(tOutStream.WriteLine(tFixedLine))
     }
-    Do tOutStream.Flush()
-    Do tOutStream.%Save()
+    $$$ThrowOnError(tOutStream.Flush())
+    $$$ThrowOnError(tOutStream.%Save())
+    // TODO Prüfen warum $$$ThrowOnError den Fehler "Function must return a value" wirft; laut Doku wird nichts zurückgegeben 
+    // $$$ThrowOnError(tFile.Close()) 
     Do tFile.Close()
-    Set rSC = $$$OK
+    Set tSC = $$$OK
   } Catch tSE {
-    Set rSC = tSE.AsStatus()
+    Set tSC = tSE.AsStatus()
     Quit
   }
-  Quit rSC
+  Quit tSC
 }
 
 }
