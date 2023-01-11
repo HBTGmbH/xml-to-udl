@@ -23,7 +23,9 @@ Aufrufhierarchie:
 - Das neue File wird abgelegt
 - Mit $SYSTEM.OBJ.Load() werden die Items aus dem Studio Export geladen und in einer Liste gespeichert
 - Für jedes Item (z.B. eine Klasse, eine LUT etc.) wird die Methode ExportFile() aufgerufen
-
+- Dort wird entschieden um was für einen Dateitypen es sich handelt
+- Für Klassen und Routinen wird die Methode ExportClassAndRoutine aufgerufen
+- Für sonstiges Dateien wird die Methode ExportCommonItemsByExtension aufgerufen
 
 */
 /// This method is the entrypoint for the transformation of the studio export file into UDL sources.
@@ -95,15 +97,43 @@ ClassMethod ExportFile(pItemName As %String, pDirectory As %String) As %Status
 
     Try {
         Set tClassAndRoutinesExtensions = $LISTBUILD("cls","mac","int","inc")
-        
         Set tItemExtension = $ZCONVERT($PIECE(pItemName,".",*), "l")
         Write "Extension: ", tItemExtension, !
-        
         If $LISTFIND(tClassAndRoutinesExtensions, tItemExtension) {
-            Do ..exportClassAndRoutine($PIECE(pItemName, ".", 1, *-1)_"."_tItemExtension, pDirectory)
+            $$$ThrowOnError(..ExportClassAndRoutine(pItemName, pDirectory))
         } Else {
             $$$ThrowOnError(..ExportCommonItemsByExtension(tItemExtension,pItemName,pDirectory))
         }
+        Set rSC = $$$OK
+    } Catch tSE {
+        Set rSC = tSE.AsStatus()
+        Quit
+    }
+    Quit rSC
+}
+
+// From: https://github.com/intersystems-community/isc-dev/blob/master/src/dev/FileManExtension.cls
+
+ClassMethod ExportClassAndRoutine(className As %String, directory As %String) As %Status
+{
+    #Dim rSC As %Status
+    #Dim tSE As %Exception.StatusException
+    Try {
+        #define isGenerated(%code) ##class(%RoutineMgr).IsGenerated( %code )
+        #define isPercented(%code) ("%" = $e(%code))
+        #define isMapped(%code) ##class(%RoutineMgr).IsMapped( %code )
+        
+        If ($$$isGenerated(className)) Return $$$OK
+        If ($$$isPercented(className)) Return $$$OK
+        If ($$$isMapped(className)) Return $$$OK
+        
+        Set tFilename = ..filename(className, directory)
+        Write "Export data: "
+        Write "File = '", tFilename, "' | "
+        Write "Class = '", className, "'"
+        Write !
+        $$$ThrowOnError(..mkdir(tFilename))
+        $$$ThrowOnError($SYSTEM.OBJ.ExportUDL(className, tFilename))
         Set rSC = $$$OK
     } Catch tSE {
         Set rSC = tSE.AsStatus()
@@ -136,36 +166,6 @@ ClassMethod ExportCommonItemsByExtension(pItemExtension As %String, pItemName As
         Quit
     }
     Quit tSC
-}
-
-// From: https://github.com/intersystems-community/isc-dev/blob/master/src/dev/FileManExtension.cls
-
-ClassMethod exportClassAndRoutine(className As %String, directory As %String) As %Status
-{
-    #Dim rSC As %Status
-    #Dim tSE As %Exception.StatusException
-    Try {
-        #define isGenerated(%code) ##class(%RoutineMgr).IsGenerated( %code )
-        #define isPercented(%code) ("%" = $e(%code))
-        #define isMapped(%code) ##class(%RoutineMgr).IsMapped( %code )
-        
-        If ($$$isGenerated(className)) Return $$$OK
-        If ($$$isPercented(className)) Return $$$OK
-        If ($$$isMapped(className)) Return $$$OK
-        
-        Set tFilename = ..filename(className, directory)
-        Write "Export data: "
-        Write "File = '", tFilename, "' | "
-        Write "Class = '", className, "'"
-        Write !
-        $$$ThrowOnError(..mkdir(tFilename))
-        $$$ThrowOnError($SYSTEM.OBJ.ExportUDL(className, tFilename))
-        Set rSC = $$$OK
-    } Catch tSE {
-        Set rSC = tSE.AsStatus()
-        Quit
-    }
-    Quit rSC
 }
 
 ClassMethod mkdir(filename As %String) As %Status
