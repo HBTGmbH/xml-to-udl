@@ -1,7 +1,8 @@
 zn "%SYS"
-Do ##class(Security.Users).UnExpireUserPasswords("*")
+do ##class(Security.Users).UnExpireUserPasswords("*")
 
 zn "USER"
-do $System.OBJ.Load("/opt/irisbuild/src/cls/HBT/Utility/Utility.inc","ck",,1)
-do $System.OBJ.Load("/opt/irisbuild/src/cls/HBT/Utility/XMLToUDL.cls","ck",,1)
+do $System.OBJ.Load("/opt/irisbuild/src/Utils/HBTLib.inc","ck",,1)
+do $System.OBJ.Load("/opt/irisbuild/src/Utils/CustomizedHelper.cls","ck",,1)
+do $System.OBJ.Load("/opt/irisbuild/src/HBT/XMLToUDL.cls","ck",,1)
 halt

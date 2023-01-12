@@ -6,7 +6,7 @@
       <Version>1.1.2</Version>
       <Packaging>module</Packaging>
       <SourcesRoot>src</SourcesRoot>
-      <Resource Name="cls.HBT.Utility.PKG"/>
+      <Resource Name="HBT.PKG"/>
     </Module>
   </Document>
 </Export>
