@@ -1,4 +1,4 @@
-Class cls.HBT.Utility.CustomizedHelper
+Class Utils.CustomizedHelper
 {
 
 /// This method replaces all occurences of the String "CON" in item names within in the Studio export file.

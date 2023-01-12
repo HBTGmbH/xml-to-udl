@@ -1,4 +1,4 @@
-ROUTINE HBT.Utility [Type=INC]
+ROUTINE Utils.HBTLib [Type=INC]
 
 #Define StringEndsWith(%str, %match) $extract(%str, *-$length(%match)+1, *) = %match
 #Define StringStartsWith(%str, %match) $extract(%str, 0, $length(%match)) = %match

@@ -1,7 +1,7 @@
-Include HBT.Utility
+Include Utils.HBTLib
 
 /// This class offers the functionality to transform a studio export file (.xml) into UDL sources (.cls, .hl7, .lut etc.) and to set up a directory and folder structure.
-Class HBT.Utility.XMLToUDL
+Class HBT.XMLToUDL
 {
 
 Parameter WORKINGDIRECTORY = "/irisrun/udl-export";
@@ -23,7 +23,7 @@ ClassMethod ImportUDLFromDefault() As %Status
         If '##class(%File).DirectoryExists(tWorkingDirectory) {
 		    $$$ThrowOnError(##class(%File).CreateDirectoryChain(tWorkingDirectory))
 	    }
-        $$$ThrowOnError(##class(cls.HBT.Utility.CustomizedHelper).FixExportFile(tLocation, tFixedLocation))
+        $$$ThrowOnError(##class(Utils.CustomizedHelper).FixExportFile(tLocation, tFixedLocation))
         $$$ThrowOnError($SYSTEM.OBJ.Load(tFixedLocation,"",.%errorlog,.tImportedItems,0,,))
         $$$ThrowOnError(..ExportFiles(tImportedItems))
         Set tSC = $$$OK
@@ -52,7 +52,7 @@ ClassMethod ExportFiles(pImportedItems As %String) As %Status
         For i=1:1:$LISTLENGTH(tItemList) {
             Set tItemName = $LIST(tItemList, i)
             // check if the file should be ignored
-            $$$ThrowOnError(##class(cls.HBT.Utility.CustomizedHelper).GetIgnoreStatus(tItemName, .tIgnoreItem))
+            $$$ThrowOnError(##class(Utils.CustomizedHelper).GetIgnoreStatus(tItemName, .tIgnoreItem))
             If ('tIgnoreItem) {
                 Write !,"Exporting File: ", tItemName,!
                 Set tItemExtension = $$$GetExtension(tItemName)
@@ -113,7 +113,7 @@ ClassMethod ExportOtherItem(pItemName As %String) As %Status
         }
         $$$ThrowOnError(..CreateFileName(pItemName, .tFileName))
         $$$ThrowOnError(..CreateDirectory(tFileName))
-        $$$ThrowOnError(##class(cls.HBT.Utility.CustomizedHelper).FixXMLLine(pItemName, tFileName))
+        $$$ThrowOnError(##class(Utils.CustomizedHelper).FixXMLLine(pItemName, tFileName))
         Set tSC = $$$OK
     } Catch tSE {
         Set tSC = tSE.AsStatus()
