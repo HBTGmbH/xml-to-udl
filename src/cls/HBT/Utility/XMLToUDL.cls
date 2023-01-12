@@ -24,9 +24,8 @@ ClassMethod ImportUDLFromDefault() As %Status
 		    $$$ThrowOnError(##class(%File).CreateDirectoryChain(tWorkingDirectory))
 	    }
         $$$ThrowOnError(##class(cls.HBT.Utility.CustomizedHelper).FixExportFile(tLocation, tFixedLocation))
-        Do $SYSTEM.OBJ.Load(tFixedLocation,"",.%errorlog,.tImportedItems,0,,)
-        Set tItemList = $LISTFROMSTRING(tImportedItems, ",")
-        $$$ThrowOnError(..ExportFiles(tItemList))
+        $$$ThrowOnError($SYSTEM.OBJ.Load(tFixedLocation,"",.%errorlog,.tImportedItems,0,,))
+        $$$ThrowOnError(..ExportFiles(tImportedItems))
         Set tSC = $$$OK
     } Catch tSE {
         Set tSC = tSE.AsStatus()
@@ -37,7 +36,7 @@ ClassMethod ImportUDLFromDefault() As %Status
 
 /// This method checks the file type and decides which export method must be used to export the corresponding item.
 /// The export process will be started for every item in the export, after it's verified that the item is not part of a ignore list. 
-ClassMethod ExportFiles(pItemList As %List) As %Status
+ClassMethod ExportFiles(pImportedItems As %String) As %Status
 {
     #Dim tSC As %Status
     #Dim tSE As %Exception.StatusException
@@ -47,10 +46,11 @@ ClassMethod ExportFiles(pItemList As %List) As %Status
     #Dim tIgnoreItem As %Boolean
 
     Try {
+        Set tItemList = $LISTFROMSTRING(pImportedItems, ",")
         Set tClassAndRoutinesExtensions = $LISTBUILD("cls", "mac", "int", "inc")
-        For i=1:1:$LISTLENGTH(pItemList) {
-            Set tItemName = $LIST(pItemList, i)
-            // check if file should be ignored
+        For i=1:1:$LISTLENGTH(tItemList) {
+            Set tItemName = $LIST(tItemList, i)
+            // check if the file should be ignored
             $$$ThrowOnError(##class(cls.HBT.Utility.CustomizedHelper).GetIgnoreStatus(tItemName, .tIgnoreItem))
             If ('tIgnoreItem) {
                 Write !,"Exporting File: ", tItemName,!
