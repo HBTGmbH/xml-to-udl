@@ -84,7 +84,7 @@ ClassMethod ExportClassAndRoutine(pClassName As %String) As %Status
             Return $$$OK
         } 
         $$$ThrowOnError(..CreateFileName(pClassName, .tFileName))
-        $$$ThrowOnError(..MakeDirectory(tFileName))
+        $$$ThrowOnError(..CreateDirectory(tFileName))
         $$$ThrowOnError($SYSTEM.OBJ.ExportUDL(pClassName, tFileName))
         Set tSC = $$$OK
     } Catch tSE {
@@ -110,7 +110,7 @@ ClassMethod ExportOtherItem(pItemName As %String) As %Status
             Set pItemName = $REPLACE(pItemName,"-","/")
         }
         $$$ThrowOnError(..CreateFileName(pItemName, .tFileName))
-        $$$ThrowOnError(..MakeDirectory(tFileName))
+        $$$ThrowOnError(..CreateDirectory(tFileName))
         $$$ThrowOnError(##class(cls.HBT.Utility.CustomizedHelper).FixXMLLine(pItemName, tFileName))
         Set tSC = $$$OK
     } Catch tSE {
@@ -158,7 +158,7 @@ ClassMethod CreateFileName(pItemName As %String, Output oFileName As %String) As
 }
 
 /// This method creates the directory structure for a specific file if it it does not exist yet.
-ClassMethod MakeDirectory(pFileName As %String) As %Status
+ClassMethod CreateDirectory(pFileName As %String) As %Status
 {
     #Dim tSC As %Status
     #Dim tSE As %Exception.StatusException
