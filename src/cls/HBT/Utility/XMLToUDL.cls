@@ -148,7 +148,7 @@ ClassMethod ExportFile(pItemName As %String, pDirectory As %String) As %Status
 
     Try {
         Set tClassAndRoutinesExtensions = $LISTBUILD("cls","mac","int","inc")
-        Set tItemExtension = $ZCONVERT($PIECE(pItemName,".",*), "l")
+        Set tItemExtension = $$$GetExtension(pItemName)
         Write "Extension: ", tItemExtension, !
         If $LISTFIND(tClassAndRoutinesExtensions, tItemExtension) {
             $$$ThrowOnError(..ExportClassAndRoutine(pItemName, pDirectory))
@@ -235,8 +235,7 @@ ClassMethod CreateFileName(pItemName As %String, pDirectory As %String) As %Stat
         If '##class(%File).DirectoryExists(tWorkingDirectory) {
 		    $$$ThrowOnError(##class(%File).CreateDirectoryChain(tWorkingDirectory))
 	    }
-        Set tExtension = $PIECE(pItemName, ".", *)
-        Set tExtension = $ZCONVERT(tExtension, "l")
+        Set tExtension = $$$GetExtension(pItemName)
         Set tSplitFiles = ##class(%SYSTEM.Util).GetEnviron("SPLIT_FILES_IN_DIRECTORIES") = "true"
         
         Write "Directory: ",tWorkingDirectory,!

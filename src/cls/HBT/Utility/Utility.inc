@@ -14,3 +14,4 @@ ROUTINE HBT.Utility [Type=INC]
 #Define isMapped(%code) ##class(%RoutineMgr).IsMapped(%code)
 
 #Define log(%dir,%sc) w "mkdir ", %dir, " ", sc, !
+#Define GetExtension(%str) $ZCONVERT($PIECE(%str,".",*), "l")
