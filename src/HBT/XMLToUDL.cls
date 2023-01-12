@@ -16,8 +16,7 @@ ClassMethod ImportUDLFromDefault() As %Status
     #Dim tImportedItems as %String // CSV list of imported items
 
     Try {
-        // TODO Update location after refactoring
-        Set tLocation = "/irisrun/udl-export/aa/studio-export.xml"
+        Set tLocation = "/irisrun/export.xml"
         Set tFixedLocation = "/opt/irisbuild/export-fixed.xml"
         Set tWorkingDirectory = ..#WORKINGDIRECTORY
         If '##class(%File).DirectoryExists(tWorkingDirectory) {
