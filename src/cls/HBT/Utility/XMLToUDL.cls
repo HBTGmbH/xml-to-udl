@@ -1,13 +1,12 @@
 Include HBT.Utility
 
-/// Description
+/// This class offers the functionality to transform a studio export file (.xml) into UDL sources (.cls, .hl7, .lut etc.) and to set up a directory and folder structure.
 Class HBT.Utility.XMLToUDL
 {
 
 Parameter WORKINGDIRECTORY = "/irisrun/udl-export";
 
 /// This method is the entrypoint for the transformation of the studio export file into UDL sources.
-/// The export process will be started for every item in the export, after it's verified that the item is not part of a ignore list. 
 ClassMethod ImportUDLFromDefault() As %Status
 {
     #Dim tSC As %Status
@@ -15,24 +14,54 @@ ClassMethod ImportUDLFromDefault() As %Status
     #Dim tImportedItems as %String // CSV list of imported items
     #Dim tLocation as %String
     #Dim tFixedLocation as %String
-    #Dim tItemName as %String
 
     Try {
+        // TODO Update location after refactoring
         Set tLocation = "/irisrun/udl-export/aa/studio-export.xml"
         Set tFixedLocation = "/opt/irisbuild/export-fixed.xml"
+        Set tWorkingDirectory = ..#WORKINGDIRECTORY
+        If '##class(%File).DirectoryExists(tWorkingDirectory) {
+		    $$$ThrowOnError(##class(%File).CreateDirectoryChain(tWorkingDirectory))
+	    }
         $$$ThrowOnError(##class(cls.HBT.Utility.CustomizedHelper).FixExportFile(tLocation, tFixedLocation))
-        Write "Importing from location: '"_tFixedLocation,!
         Do $SYSTEM.OBJ.Load(tFixedLocation,"",.%errorlog,.tImportedItems,0,,)
-        Write "Imported: ",!, tImportedItems,!,!
         Set tItemList = $LISTFROMSTRING(tImportedItems, ",")
-        For i=1:1:$LISTLENGTH(tItemList) {
-            Set tItemName = $LIST(tItemList,i)
-            $$$ThrowOnError(##class(cls.HBT.Utility.CustomizedHelper).GetIgnoreStatus(tItemName, .pIgnoreItem))
-            If ('pIgnoreItem) {
-                Write !,"Exporting Item: ", tItemName,!
-                $$$ThrowOnError(..ExportFile(tItemName))
+        $$$ThrowOnError(..ExportFiles(tItemList))
+        Set tSC = $$$OK
+    } Catch tSE {
+        Set tSC = tSE.AsStatus()
+        Quit
+    }
+    Quit tSC
+}
+
+/// This method checks the file type and decides which export method must be used to export the corresponding item.
+/// The export process will be started for every item in the export, after it's verified that the item is not part of a ignore list. 
+ClassMethod ExportFiles(pItemList As %List) As %Status
+{
+    #Dim tSC As %Status
+    #Dim tSE As %Exception.StatusException
+    #Dim tClassAndRoutinesExtensions As List of %String
+    #Dim tItemName As %String
+    #Dim tItemExtension As %String
+    #Dim tIgnoreItem As %Boolean
+
+    Try {
+        Set tClassAndRoutinesExtensions = $LISTBUILD("cls", "mac", "int", "inc")
+        For i=1:1:$LISTLENGTH(pItemList) {
+            Set tItemName = $LIST(pItemList, i)
+            // check if file should be ignored
+            $$$ThrowOnError(##class(cls.HBT.Utility.CustomizedHelper).GetIgnoreStatus(tItemName, .tIgnoreItem))
+            If ('tIgnoreItem) {
+                Write !,"Exporting File: ", tItemName,!
+                Set tItemExtension = $$$GetExtension(tItemName)
+                If $LISTFIND(tClassAndRoutinesExtensions, tItemExtension) {
+                    $$$ThrowOnError(..ExportClassAndRoutine(tItemName))
+                } Else {
+                    $$$ThrowOnError(..ExportOtherItem(tItemName))
+                }
             } Else {
-                Write !,"Skip exporting Item, because it's on the ignore list: ", tItemName,!
+                Write !,"Skip exporting file, because it is on the ignore list: ", tItemName,!
             }
         }
         Set tSC = $$$OK
@@ -43,30 +72,6 @@ ClassMethod ImportUDLFromDefault() As %Status
     Quit tSC
 }
 
-ClassMethod ExportFile(pItemName As %String) As %Status
-{
-    #Dim rSC As %Status
-    #Dim tSE As %Exception.StatusException
-    #Dim tClassAndRoutinesExtensions As List of %String
-    #Dim tItemExtension As %String
-
-    Try {
-        Set tClassAndRoutinesExtensions = $LISTBUILD("cls","mac","int","inc")
-        Set tItemExtension = $$$GetExtension(pItemName)
-        Write "Extension: ", tItemExtension, !
-        If $LISTFIND(tClassAndRoutinesExtensions, tItemExtension) {
-            $$$ThrowOnError(..ExportClassAndRoutine(pItemName))
-        } Else {
-            $$$ThrowOnError(..ExportCommonItemsByExtension(tItemExtension,pItemName))
-        }
-        Set rSC = $$$OK
-    } Catch tSE {
-        Set rSC = tSE.AsStatus()
-        Quit
-    }
-    Quit rSC
-}
-
 /// This method triggers the export of classes and routines.
 ClassMethod ExportClassAndRoutine(pClassName As %String) As %Status
 {
@@ -75,15 +80,10 @@ ClassMethod ExportClassAndRoutine(pClassName As %String) As %Status
     #Dim tFileName As %String
 
     Try {
-        // TODO Die If Abfragen kann man auch noch optimieren
-        If ($$$isGenerated(pClassName)) Return $$$OK
-        If ($$$isPercented(pClassName)) Return $$$OK
-        If ($$$isMapped(pClassName)) Return $$$OK
-        
-        Set tFileName = ..CreateFileName(pClassName)
-        Write "Export data ...",!
-        Write "File: '", tFileName,!
-        Write "Class: '", pClassName,!
+        If ($$$isGenerated(pClassName)) || ($$$isPercented(pClassName)) || ($$$isMapped(pClassName)) {
+            Return $$$OK
+        } 
+        $$$ThrowOnError(..CreateFileName(pClassName, .tFileName))
         $$$ThrowOnError(..MakeDirectory(tFileName))
         $$$ThrowOnError($SYSTEM.OBJ.ExportUDL(pClassName, tFileName))
         Set tSC = $$$OK
@@ -95,24 +95,23 @@ ClassMethod ExportClassAndRoutine(pClassName As %String) As %Status
 }
 
 /// This method triggers the export of common files that are not classes or routines (for example .hl7 or .lut files).
-/// Depending on the file type, the file name will set accordingly.
-ClassMethod ExportCommonItemsByExtension(pItemExtension As %String, pItemName As %String) As %Status
+/// Depending on the file type, the file name will be set accordingly.
+ClassMethod ExportOtherItem(pItemName As %String) As %Status
 {
     #Dim tSC As %Status
     #Dim tSE As %Exception.StatusException
+    #Dim tItemExtension As %String
     #Dim tFileName As %String
     
     Try {
-        If (pItemExtension = "hl7") || (pItemExtension = "csp") || (pItemExtension = "lut") {
-            Set tFileName = ..CreateFileName(pItemName)
-        } ElseIf (pItemExtension = "dfi") {
-            Set tFileName = ..CreateFileName($REPLACE(pItemName,"-","/"))
-            Set tFileName = $EXTRACT(tFileName,1,*-4)_".xml"
-        } Else {
-            Set tFileName = ..CreateFileName($REPLACE(pItemName,"-","/"))
+        Set tItemExtension = $$$GetExtension(pItemName)
+        Set tCommonItemTypes = $LISTBUILD("hl7","csp","lut")
+        If '$LISTFIND(tCommonItemTypes, tItemExtension) { 
+            Set pItemName = $REPLACE(pItemName,"-","/")
         }
-        Do ..MakeDirectory(tFileName)
-        Do ##class(cls.HBT.Utility.CustomizedHelper).FixXMLLine(pItemName, tFileName)
+        $$$ThrowOnError(..CreateFileName(pItemName, .tFileName))
+        $$$ThrowOnError(..MakeDirectory(tFileName))
+        $$$ThrowOnError(##class(cls.HBT.Utility.CustomizedHelper).FixXMLLine(pItemName, tFileName))
         Set tSC = $$$OK
     } Catch tSE {
         Set tSC = tSE.AsStatus()
@@ -121,40 +120,34 @@ ClassMethod ExportCommonItemsByExtension(pItemExtension As %String, pItemName As
     Quit tSC
 }
 
-ClassMethod CreateFileName(pItemName As %String) As %Status
+/// This method creates the file name and therefore it is the foundation to generate the path to set up the directory structure.
+ClassMethod CreateFileName(pItemName As %String, Output oFileName As %String) As %Status
 {
     #Dim tSC As %Status
     #Dim tSE As %Exception.StatusException
     #Dim tWorkingDirectory As %String
     #Dim tExtension As %String
     #Dim tSplitFiles As %Boolean
-    #Dim tFileName As %String
     #Dim tDirectory As %String
-    #Dim tRelativePath As %String
 
     Try {
         Set tWorkingDirectory = ..#WORKINGDIRECTORY
-        If '##class(%File).DirectoryExists(tWorkingDirectory) {
-		    $$$ThrowOnError(##class(%File).CreateDirectoryChain(tWorkingDirectory))
-	    }
         Set tExtension = $$$GetExtension(pItemName)
-        Write "Directory: ",tWorkingDirectory,!
-        Set tFileName = ##class(%File).NormalizeFilename(pItemName,tWorkingDirectory)
-        // Don't split HL7 schema files by dots
+        // don't split HL7 schema files by dots
         If (tExtension '= "hl7") {
             Set tDirectory = $PIECE(pItemName, ".",1, *-2 )
             Set tDirectory = $TRANSLATE(tDirectory, ".", "/")
-            Set tRelativePath = tDirectory_"/"_$PIECE(pItemName, ".", *-1, *)
-            Set tFileName = ##class(%File).NormalizeFilename(tRelativePath, tWorkingDirectory)
+            Set pItemName = tDirectory_"/"_$PIECE(pItemName, ".", *-1, *)
         }
-        // Make sure that the files are stored in the "src" directory of the project 
-        Write "Filename before IF: ",tFileName,!
-        If ('$FIND(tFileName, tWorkingDirectory)) {
-            Write "Did not found WD String: ",tWorkingDirectory,!
-            Set tFileName = tWorkingDirectory_tFileName
+        Set oFileName = ##class(%File).NormalizeFilename(pItemName, tWorkingDirectory)
+        If (tExtension = "dfi") {
+            Set oFileName = $EXTRACT(oFileName,1,*-4)_".xml"
         }
-        Write "Filename after IF: ",tFileName,!
-        Return tFileName
+        // make sure that the files are stored in the "src" directory of the project 
+        If ('$FIND(oFileName, tWorkingDirectory)) {
+            Set oFileName = tWorkingDirectory_oFileName
+        }
+        Write "Filename: ",oFileName,!
         Set tSC = $$$OK
     }
     Catch tSE {
@@ -164,7 +157,7 @@ ClassMethod CreateFileName(pItemName As %String) As %Status
     Quit tSC
 }
 
-/// This method creates the directory for a specific file if it it does not exist yet.
+/// This method creates the directory structure for a specific file if it it does not exist yet.
 ClassMethod MakeDirectory(pFileName As %String) As %Status
 {
     #Dim tSC As %Status
@@ -173,13 +166,14 @@ ClassMethod MakeDirectory(pFileName As %String) As %Status
     #Dim tPathToCreate As %String
 
     Try {
+        Set tWorkingDirectory = ..#WORKINGDIRECTORY
         Set tPath = ##class(%File).GetDirectory(pFileName)
         If ($$$StringEndsWith(tPath, "/")) {
             Set tPath = $$$StringRemoveLast(tPath)
         }
         If '##class(%File).DirectoryExists(tPath){
-            If ('$$$StringStartsWith(tPath, "/irisrun/udl-export")) {
-                Set tPathToCreate = "/irisrun/udl-export"_tPath
+            If ('$$$StringStartsWith(tPath, tWorkingDirectory)) {
+                Set tPathToCreate = tWorkingDirectory_tPath
             } Else {
                 Set tPathToCreate = tPath
             }
