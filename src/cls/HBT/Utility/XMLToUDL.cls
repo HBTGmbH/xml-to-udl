@@ -11,9 +11,9 @@ ClassMethod ImportUDLFromDefault() As %Status
 {
     #Dim tSC As %Status
     #Dim tSE As %Exception.StatusException
-    #Dim tImportedItems as %String // CSV list of imported items
     #Dim tLocation as %String
     #Dim tFixedLocation as %String
+    #Dim tImportedItems as %String // CSV list of imported items
 
     Try {
         // TODO Update location after refactoring
@@ -40,10 +40,11 @@ ClassMethod ExportFiles(pImportedItems As %String) As %Status
 {
     #Dim tSC As %Status
     #Dim tSE As %Exception.StatusException
+    #Dim tItemList As List of %String
     #Dim tClassAndRoutinesExtensions As List of %String
     #Dim tItemName As %String
-    #Dim tItemExtension As %String
     #Dim tIgnoreItem As %Boolean
+    #Dim tItemExtension As %String
 
     Try {
         Set tItemList = $LISTFROMSTRING(pImportedItems, ",")
@@ -101,6 +102,7 @@ ClassMethod ExportOtherItem(pItemName As %String) As %Status
     #Dim tSC As %Status
     #Dim tSE As %Exception.StatusException
     #Dim tItemExtension As %String
+    #Dim tCommonItemTypes As List of %String
     #Dim tFileName As %String
     
     Try {
@@ -127,7 +129,6 @@ ClassMethod CreateFileName(pItemName As %String, Output oFileName As %String) As
     #Dim tSE As %Exception.StatusException
     #Dim tWorkingDirectory As %String
     #Dim tExtension As %String
-    #Dim tSplitFiles As %Boolean
     #Dim tDirectory As %String
 
     Try {
