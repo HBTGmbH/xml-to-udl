@@ -16,7 +16,9 @@ ClassMethod ImportUDLFromDefault() As %Status
     #Dim tImportedItems as %String // CSV list of imported items
 
     Try {
-        Set tLocation = "/irisrun/export.xml"
+        // Set tLocation = "/irisrun/export.xml"
+        // TODO remove the local test path
+        Set tLocation = "/irisrun/udl-export/aa/studio-export.xml"
         Set tFixedLocation = "/opt/irisbuild/export-fixed.xml"
         Set tWorkingDirectory = ..#WORKINGDIRECTORY
         If '##class(%File).DirectoryExists(tWorkingDirectory) {
@@ -41,13 +43,17 @@ ClassMethod ExportFiles(pImportedItems As %String) As %Status
     #Dim tSE As %Exception.StatusException
     #Dim tItemList As List of %String
     #Dim tClassAndRoutinesExtensions As List of %String
+    #Dim tCommonItemTypeExtensions As List of %String
     #Dim tItemName As %String
+    #Dim tFileName As %String
     #Dim tIgnoreItem As %Boolean
     #Dim tItemExtension As %String
 
     Try {
         Set tItemList = $LISTFROMSTRING(pImportedItems, ",")
         Set tClassAndRoutinesExtensions = $LISTBUILD("cls", "mac", "int", "inc")
+        Set tCommonItemTypeExtensions = $LISTBUILD("hl7","csp","lut")
+        
         For i=1:1:$LISTLENGTH(tItemList) {
             Set tItemName = $LIST(tItemList, i)
             // check if the file should be ignored
@@ -55,64 +61,22 @@ ClassMethod ExportFiles(pImportedItems As %String) As %Status
             If ('tIgnoreItem) {
                 Write !,"Exporting File: ", tItemName,!
                 Set tItemExtension = $$$GetExtension(tItemName)
+                $$$ThrowOnError(..CreateFileName(tItemName, .tFileName))
+                $$$ThrowOnError(..CreateDirectory(tFileName))
                 If $LISTFIND(tClassAndRoutinesExtensions, tItemExtension) {
-                    $$$ThrowOnError(..ExportClassAndRoutine(tItemName))
+                    // trigger export of classes and routines
+                    $$$ThrowOnError($SYSTEM.OBJ.ExportUDL(tItemName, tFileName))
                 } Else {
-                    $$$ThrowOnError(..ExportOtherItem(tItemName))
+                    If '$LISTFIND(tCommonItemTypeExtensions, tItemExtension) {
+                        Set tItemName = $REPLACE(tItemName,"-","/") // needed for .dfi files 
+                    }
+                    // trigger export of other items (for example .hl7 or .lut files)
+                    $$$ThrowOnError(##class(Utils.CustomizedHelper).FixXMLLine(tItemName, tFileName))
                 }
             } Else {
                 Write !,"Skip exporting file, because it is on the ignore list: ", tItemName,!
             }
         }
-        Set tSC = $$$OK
-    } Catch tSE {
-        Set tSC = tSE.AsStatus()
-        Quit
-    }
-    Quit tSC
-}
-
-/// This method triggers the export of classes and routines.
-ClassMethod ExportClassAndRoutine(pClassName As %String) As %Status
-{
-    #Dim tSC As %Status
-    #Dim tSE As %Exception.StatusException
-    #Dim tFileName As %String
-
-    Try {
-        If ($$$isGenerated(pClassName)) || ($$$isPercented(pClassName)) || ($$$isMapped(pClassName)) {
-            Return $$$OK
-        } 
-        $$$ThrowOnError(..CreateFileName(pClassName, .tFileName))
-        $$$ThrowOnError(..CreateDirectory(tFileName))
-        $$$ThrowOnError($SYSTEM.OBJ.ExportUDL(pClassName, tFileName))
-        Set tSC = $$$OK
-    } Catch tSE {
-        Set tSC = tSE.AsStatus()
-        Quit
-    }
-    Quit tSC
-}
-
-/// This method triggers the export of common files that are not classes or routines (for example .hl7 or .lut files).
-/// Depending on the file type, the file name will be set accordingly.
-ClassMethod ExportOtherItem(pItemName As %String) As %Status
-{
-    #Dim tSC As %Status
-    #Dim tSE As %Exception.StatusException
-    #Dim tItemExtension As %String
-    #Dim tCommonItemTypes As List of %String
-    #Dim tFileName As %String
-    
-    Try {
-        Set tItemExtension = $$$GetExtension(pItemName)
-        Set tCommonItemTypes = $LISTBUILD("hl7","csp","lut")
-        If '$LISTFIND(tCommonItemTypes, tItemExtension) { 
-            Set pItemName = $REPLACE(pItemName,"-","/")
-        }
-        $$$ThrowOnError(..CreateFileName(pItemName, .tFileName))
-        $$$ThrowOnError(..CreateDirectory(tFileName))
-        $$$ThrowOnError(##class(Utils.CustomizedHelper).FixXMLLine(pItemName, tFileName))
         Set tSC = $$$OK
     } Catch tSE {
         Set tSC = tSE.AsStatus()
