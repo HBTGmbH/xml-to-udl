@@ -16,9 +16,7 @@ ClassMethod ImportUDLFromDefault() As %Status
     #Dim tImportedItems as %String // CSV list of imported items
 
     Try {
-        // Set tLocation = "/irisrun/export.xml"
-        // TODO remove the local test path
-        Set tLocation = "/irisrun/udl-export/aa/studio-export.xml"
+        Set tLocation = "/irisrun/export.xml"
         Set tFixedLocation = "/opt/irisbuild/export-fixed.xml"
         Set tWorkingDirectory = ..#WORKINGDIRECTORY
         If '##class(%File).DirectoryExists(tWorkingDirectory) {
