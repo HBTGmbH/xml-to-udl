@@ -155,11 +155,7 @@ ClassMethod CreateDirectory(pFileName As %String) As %Status
                 Set tPathToCreate = tPath
             }
             Write !, "Directory does not exist. Creating: "_tPathToCreate, ! 
-            Set tResult = ##class(%File).CreateDirectoryChain(tPathToCreate, .tReturn)
-            Write "Directory create status: ", tResult, !
-            If ('tResult) {
-                ZWrite tReturn
-            }
+            $$$ThrowOnError(##class(%File).CreateDirectoryChain(tPathToCreate))
 	    }
         Set tSC = $$$OK
     } Catch tSE {
