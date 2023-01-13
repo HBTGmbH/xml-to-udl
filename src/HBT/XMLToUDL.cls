@@ -35,47 +35,60 @@ ClassMethod ImportUDLFromDefault() As %Status
     Quit tSC
 }
 
-/// This method checks the file type and decides which export method must be used to export the corresponding item.
-/// The export process will be started for every item in the export, after it's verified that the item is not part of a ignore list. 
+/// This method triggers the export process for every item in the export, after it's verified that the item is not part of a ignore list. 
 ClassMethod ExportFiles(pImportedItems As %String) As %Status
 {
     #Dim tSC As %Status
     #Dim tSE As %Exception.StatusException
     #Dim tItemList As List of %String
-    #Dim tClassAndRoutinesExtensions As List of %String
-    #Dim tCommonItemTypeExtensions As List of %String
     #Dim tItemName As %String
-    #Dim tFileName As %String
     #Dim tIgnoreItem As %Boolean
-    #Dim tItemExtension As %String
 
     Try {
         Set tItemList = $LISTFROMSTRING(pImportedItems, ",")
-        Set tClassAndRoutinesExtensions = $LISTBUILD("cls", "mac", "int", "inc")
-        Set tCommonItemTypeExtensions = $LISTBUILD("hl7","csp","lut")
-        
         For i=1:1:$LISTLENGTH(tItemList) {
             Set tItemName = $LIST(tItemList, i)
-            // check if the file should be ignored
             $$$ThrowOnError(##class(Utils.CustomizedHelper).GetIgnoreStatus(tItemName, .tIgnoreItem))
             If ('tIgnoreItem) {
-                Write !,"Exporting File: ", tItemName,!
-                Set tItemExtension = $$$GetExtension(tItemName)
-                $$$ThrowOnError(..CreateFileName(tItemName, .tFileName))
-                $$$ThrowOnError(..CreateDirectory(tFileName))
-                If $LISTFIND(tClassAndRoutinesExtensions, tItemExtension) {
-                    // trigger export of classes and routines
-                    $$$ThrowOnError($SYSTEM.OBJ.ExportUDL(tItemName, tFileName))
-                } Else {
-                    If '$LISTFIND(tCommonItemTypeExtensions, tItemExtension) {
-                        Set tItemName = $REPLACE(tItemName,"-","/") // needed for .dfi files 
-                    }
-                    // trigger export of other items (for example .hl7 or .lut files)
-                    $$$ThrowOnError(##class(Utils.CustomizedHelper).FixXMLLine(tItemName, tFileName))
-                }
+                $$$ThrowOnError(..ExportItem(tItemName))
             } Else {
                 Write !,"Skip exporting file, because it is on the ignore list: ", tItemName,!
             }
+        }
+        Set tSC = $$$OK
+    } Catch tSE {
+        Set tSC = tSE.AsStatus()
+        Quit
+    }
+    Quit tSC
+}
+
+/// This method checks the file type and decides which export method must be used to export the corresponding item.
+ClassMethod ExportItem(pItemName As %String) As %Status
+{
+    #Dim tSC As %Status
+    #Dim tSE As %Exception.StatusException
+    #Dim tClassAndRoutinesExtensions As List of %String
+    #Dim tCommonItemTypeExtensions As List of %String
+    #Dim tItemExtension As %String
+    
+    Try {
+        Write !,"Exporting File: ", pItemName,!
+        Set tClassAndRoutinesExtensions = $LISTBUILD("cls", "mac", "int", "inc")
+        Set tCommonItemTypeExtensions = $LISTBUILD("hl7","csp","lut")
+        Set tItemExtension = $$$GetExtension(pItemName)
+        $$$ThrowOnError(..CreateFileName(pItemName, .tFileName))
+        $$$ThrowOnError(..CreateDirectory(tFileName))
+
+        If $LISTFIND(tClassAndRoutinesExtensions, tItemExtension) {
+            // trigger export of classes and routines
+            $$$ThrowOnError($SYSTEM.OBJ.ExportUDL(pItemName, tFileName))
+        } Else {
+            // trigger export of other items (for example .hl7 or .lut files)
+            If '$LISTFIND(tCommonItemTypeExtensions, tItemExtension) {
+                Set pItemName = $REPLACE(pItemName,"-","/") // needed for .dfi files 
+            }
+            $$$ThrowOnError(##class(Utils.CustomizedHelper).FixXMLLine(pItemName, tFileName))
         }
         Set tSC = $$$OK
     } Catch tSE {
