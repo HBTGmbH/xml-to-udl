@@ -1,3 +1,5 @@
+Include Utils.HBTLib
+
 Class Utils.CustomizedHelper
 {
 
@@ -75,6 +77,26 @@ ClassMethod GetIgnoreStatus(pItemName As %String, Output oIgnoreItem As %Boolean
 						"dev.diff.gitLocal.CLS",
 						"dev.diff.utils.CLS")
         Set oIgnoreItem = $LISTFIND(tIgnoreList, pItemName)
+        Set tSC = $$$OK
+    } Catch tSE {
+        Set tSC = tSE.AsStatus()
+        Quit
+    }
+    Quit tSC
+}
+
+/// This method checks if a class is generated, is a %class or mapped. If yes, "oSkipItem" will be set to TRUE. 
+ClassMethod GetClassStatus(pItemName As %String, Output oSkipItem As %Boolean) As %Status
+{
+    #Dim tSC As %Status
+    #Dim tSE As %Exception.StatusException
+    
+    Try {
+        If ($$$isGenerated(pItemName)) || ($$$isPercented(pItemName)) || ($$$isMapped(pItemName)) {
+            Set oSkipItem = 1
+        } Else {
+            Set oSkipItem = 0
+        }
         Set tSC = $$$OK
     } Catch tSE {
         Set tSC = tSE.AsStatus()

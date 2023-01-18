@@ -47,10 +47,10 @@ ClassMethod ExportFiles(pImportedItems As %String) As %Status
         For i=1:1:$LISTLENGTH(tItemList) {
             Set tItemName = $LIST(tItemList, i)
             $$$ThrowOnError(##class(Utils.CustomizedHelper).GetIgnoreStatus(tItemName, .tIgnoreItem))
-            If ('tIgnoreItem) {
-                $$$ThrowOnError(..ExportItem(tItemName))
+            If (tIgnoreItem) {
+                Write !,"Skip exporting file because it is on a ignore list: ", tItemName,!
             } Else {
-                Write !,"Skip exporting file, because it is on the ignore list: ", tItemName,!
+                $$$ThrowOnError(..ExportItem(tItemName))
             }
         }
         Set tSC = $$$OK
@@ -77,10 +77,14 @@ ClassMethod ExportItem(pItemName As %String) As %Status
         Set tItemExtension = $$$GetExtension(pItemName)
         $$$ThrowOnError(..CreateFileName(pItemName, .tFileName))
         $$$ThrowOnError(..CreateDirectory(tFileName))
-
         If $LISTFIND(tClassAndRoutinesExtensions, tItemExtension) {
+            $$$ThrowOnError(##class(Utils.CustomizedHelper).GetClassStatus(pItemName, .tSkipItem))
+            If (tSkipItem) {
+                Write !,"Skip exporting class because it is generated, mapped or a %-class: ", pItemName,!
+            } Else {
             // trigger export of classes and routines
             $$$ThrowOnError($SYSTEM.OBJ.ExportUDL(pItemName, tFileName))
+            }
         } Else {
             // trigger export of other items (for example .hl7 or .lut files)
             If '$LISTFIND(tCommonItemTypeExtensions, tItemExtension) {
