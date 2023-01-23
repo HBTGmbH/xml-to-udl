@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="IRIS" version="26" zv="IRIS for UNIX (Ubuntu Server LTS for x86-64 Containers) 2022.2 (Build 368U)" ts="2023-01-23 10:53:24">
+
+
+<Class name="App.Production">
+<Super>Ens.Production</Super>
+<TimeChanged>66497,39031.2461494</TimeChanged>
+<TimeCreated>66497,36442.6900194</TimeCreated>
+
+<XData name="ProductionDefinition">
+<Data><![CDATA[
+<Production Name="App.Production" TestingEnabled="false" LogGeneralTraceEvents="false">
+  <Description></Description>
+  <ActorPoolSize>2</ActorPoolSize>
+  <Setting Target="Adapter" Name="UpdateTimeout">20</Setting>
+  <Setting Target="Adapter" Name="ShutdownTimeout">250</Setting>
+  <Item Name="TCPTestService" Category="" ClassName="EnsLib.HL7.Service.TCPService" PoolSize="1" Enabled="false" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+    <Setting Target="Host" Name="MessageSchemaCategory">2.7</Setting>
+    <Setting Target="Host" Name="TargetConfigNames">TCPTestService_Router</Setting>
+  </Item>
+  <Item Name="FileTestService" Category="" ClassName="EnsLib.HL7.Service.FileService" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+    <Setting Target="Adapter" Name="FileSpec">*</Setting>
+    <Setting Target="Adapter" Name="FilePath">/opt/app/tests/</Setting>
+  </Item>
+</Production>
+]]></Data>
+</XData>
+</Class>
+
+
+<Class name="App.TCPTestServiceRoutingRule">
+<Description>
+</Description>
+<Super>Ens.Rule.Definition</Super>
+<TimeChanged>66497,36442.6838747</TimeChanged>
+<TimeCreated>66497,36442.6838747</TimeCreated>
+
+<Parameter name="RuleAssistClass">
+<Default>EnsLib.HL7.MsgRouter.RuleAssist</Default>
+</Parameter>
+
+<XData name="RuleDefinition">
+<XMLNamespace>http://www.intersystems.com/rule</XMLNamespace>
+<Data><![CDATA[
+<ruleDefinition alias="" context="EnsLib.HL7.MsgRouter.RoutingEngine" production="App.Production">
+<ruleSet name="" effectiveBegin="" effectiveEnd="">
+<rule name="">
+</rule>
+</ruleSet>
+</ruleDefinition>
+]]></Data>
+</XData>
+</Class>
+
+
+<Global>
+<Node><Sub>^Ens.Config.DefaultSettingsD</Sub>
+<Node><Sub>App.Production</Sub>
+<Node><Sub>*</Sub>
+<Node><Sub>*</Sub>
+<Node><Sub>ArchivePath</Sub>
+<DataBase64>EQEvb3B0L2FwcC90ZXN0cy8CAQIE
+</DataBase64>
+</Node>
+<Node><Sub>WorkPath</Sub>
+<DataBase64>EQEvb3B0L2FwcC90ZXN0cy8CAQIE
+</DataBase64>
+</Node>
+</Node>
+</Node>
+<Node><Sub>FileTestService</Sub>
+<Node><Sub>EnsLib.HL7.Service.FileService</Sub>
+<Node><Sub>FilePath</Sub>
+<DataBase64>EQEvb3B0L2FwcC90ZXN0cy8CAQIE
+</DataBase64>
+</Node>
+</Node>
+</Node>
+<Node><Sub>TCPTestService</Sub>
+<Node><Sub>EnsLib.HL7.Service.TCPService</Sub>
+<Node><Sub>Port</Sub>
+<DataBase64>BgE1MDAwAgECBA==
+</DataBase64>
+</Node>
+</Node>
+</Node>
+</Node>
+</Node>
+</Global>
+
+
+<Project name="SampleProject" LastModified="2023-01-23 10:53:12.0889125">
+  <Items>
+    <ProjectItem name="App" type="PKG"></ProjectItem>
+    <ProjectItem name="CustomTestLookupTable.LUT" type="LUT"></ProjectItem>
+    <ProjectItem name="CustomTestSchema.HL7" type="HL7"></ProjectItem>
+    <ProjectItem name="Ens.Config.DefaultSettingsD.GBL" type="GBL"></ProjectItem>
+    <ProjectItem name="Utils.HBTLib.INC" type="MAC"></ProjectItem>
+  </Items>
+</Project>
+
+
+<Routine name="Utils.HBTLib" type="INC" timestamp="66497,38422.6535459"><![CDATA[
+#Define StringEndsWith(%str, %match) $extract(%str, *-$length(%match)+1, *) = %match
+#Define StringStartsWith(%str, %match) $extract(%str, 0, $length(%match)) = %match
+
+#Define StringRemoveLast(%str) $extract(%str, 0, *-1)
+#Define StringRemoveLastN(%str, %count) $extract(%str, 0, *-%count)
+
+#Define StringToLower(%str) $ZCONVERT(%str, "L")
+#Define StringToUpper(%str) $ZCONVERT(%str, "Z")
+
+#Define isGenerated(%code) ##class(%RoutineMgr).IsGenerated(%code)
+#Define isPercented(%code) ("%" = $e(%code))
+#Define isMapped(%code) ##class(%RoutineMgr).IsMapped(%code)
+
+#Define log(%dir,%sc) w "mkdir ", %dir, " ", sc, !
+#Define GetExtension(%str) $ZCONVERT($PIECE(%str,".",*), "l")
+]]></Routine>
+
+
+<Document name="CustomTestLookupTable.LUT">
+<lookupTable>
+<entry table="CustomTestLookupTable" key="A">1</entry>
+<entry table="CustomTestLookupTable" key="B">2</entry>
+<entry table="CustomTestLookupTable" key="C">3</entry>
+<entry table="CustomTestLookupTable" key="D">4</entry>
+<entry table="CustomTestLookupTable" key="E">5</entry>
+</lookupTable>
+</Document>
+
+<Document name="CustomTestSchema.HL7">
+<Category name="CustomTestSchema" description="A test schema" base="2.5">
+
+<MessageType name='ADT_A01' structure='ADT_A01' returntype='base:ACK_A01' description='ADT message - Admit/visit notification'/>
+
+<MessageStructure name='ADT_A01' definition='base:MSH~[~{~base:SFT~}~]~base:EVN~base:PID~[~base:PD1~]~[~{~base:ROL~}~]~[~{~base:NK1~}~]~base:PV1~[~base:PV2~]~[~{~base:ROL~}~]~[~{~base:DB1~}~]~[~{~base:OBX~}~]~[~{~base:AL1~}~]~[~{~base:DG1~}~]~[~base:DRG~]~[~{~base:PR1~[~{~base:ROL~}~]~}~]~[~{~base:GT1~}~]~[~{~base:IN1~[~base:IN2~]~[~{~base:IN3~}~]~[~{~base:ROL~}~]~}~]~[~base:ACC~]~[~base:UB1~]~[~base:UB2~]~[~base:PDA~]'/>
+
+</Category>
+</Document></Export>
