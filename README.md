@@ -26,7 +26,7 @@ Make sure you have [Git](https://git-scm.com/book/en/v2/Getting-Started-Installi
 
 You can find a sample studio export under **/studio-export-sample/studio-export.xml**. This export contains some of the most common file types (for example ".cls", ".lut", ".hl7", ".inc", ".gbl"). 
 
-Just copy the export file to a directory of your choice, add a folder called "src" and build the image like it's described in the "Usage" section. Finally execute `docker run --rm -v "${pwd}/studio-export.xml:/irisrun/export.xml" -v "${pwd}/src:/irisrun/udl-export"  xml-to-udl:latest` to test the functionality. You should now find some sample files in the "src" directory.
+Just copy the export file to a directory of your choice, add a folder called "src" and build the image like it's described in the "Usage" section. Finally execute `docker run --rm -v "${pwd}/studio-export.xml:/irisrun/export.xml" -v "${pwd}/src:/irisrun/udl-export" xml-to-udl:latest` to test the functionality. You should now find some sample files in the "src" directory.
 
 It's a good practice to use this tool in combination with the [ObjectScript Docker Template](https://github.com/intersystems-community/objectscript-docker-template). It allows you to set up a local IRIS instance and use the sources from a existing project without the need to use IRIS Studio.
 
