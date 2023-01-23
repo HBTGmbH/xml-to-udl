@@ -6,7 +6,7 @@ A docker image that allows you to convert InterSystems Studio exports (.xml) int
 
 ## Prerequisites
 
-Make sure you have [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) and [Docker Desktop](https://www.docker.com/products/docker-desktop) installed.
+Make sure you have [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) and [Docker Desktop](https://www.docker.com/products/docker-desktop) installed. Windows user should use the powershell for executing the following docker commands.
 ## Usage
 
 1. Clone this repository into any local directory  
