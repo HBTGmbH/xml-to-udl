@@ -1,14 +1,15 @@
-FROM containers.intersystems.com/intersystems/irishealth-ml-community:2022.2.0.368.0
+ARG IMAGE=intersystemsdc/irishealth-community
+FROM $IMAGE
 
 USER root   
-## add git
+# Add Git
 RUN apt update && apt-get -y install git
         
 WORKDIR /opt/irisbuild
 RUN chown ${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /opt/irisbuild
 USER ${ISC_PACKAGE_MGRUSER}
 
-#COPY  Installer.cls .
+# COPY  Installer.cls .
 COPY src src
 COPY module.xml module.xml
 COPY iris.script iris.script
@@ -19,4 +20,4 @@ RUN iris start IRIS \
     && iris stop IRIS quietly
 
 ENTRYPOINT [ "/iris-main" ]
-CMD [ "-a", "/opt/irisbuild/do-conversion.sh", "-l", "/usr/irissys/mgr/messages.log", "--check-caps", "false"]
+CMD ["-a", "/opt/irisbuild/do-conversion.sh", "-l", "/usr/irissys/mgr/messages.log", "--check-caps", "false", "--ISCAgent", "false"]
