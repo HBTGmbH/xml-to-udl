@@ -14,6 +14,7 @@ COPY module.xml module.xml
 COPY iris.script iris.script
 COPY entrypoint.sh /entrypoint.sh
 COPY do-conversion.sh do-conversion.sh
+RUN chmod +x /entrypoint.sh
 
 RUN iris start IRIS \
 	&& iris session IRIS < iris.script \
