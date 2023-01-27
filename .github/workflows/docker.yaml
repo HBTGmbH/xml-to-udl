@@ -1,0 +1,18 @@
+name: Docker Build
+
+on:
+  push:
+    branches: [ master ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build & Push to Github Packages
+        uses: zenato/docker-action@v1.0.0
+        with:
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: "docker.pkg.github.com"
+          repository: "hbtgmbh/xml-to-udl/converter"
+          tag: "latest"
