@@ -1,4 +1,4 @@
 #!/bin/bash
 iris session IRIS <<< 'zwrite ##class(HBT.XMLToUDL).ImportUDLFromDefault()'
 echo "Successfully Converted!"
-iris stop iris quietly
+kill $(ps aux | grep 'iris-main' | awk '{print $2}')
