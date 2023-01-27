@@ -35,3 +35,11 @@ It's a good practice to use this tool in combination with the [ObjectScript Dock
 `docker run --rm -v "${pwd}/studio-export.xml:/irisrun/export.xml" -v "${pwd}/src:/irisrun/udl-export" xml-to-udl:latest`
 
 After generating the source files it's quite easy to use version control with Git and keep track of your changes during the project.
+
+## Demo
+
+This video demonstrates how you can use the tool in combination with the ObjectScript Docker Template. 
+
+https://user-images.githubusercontent.com/73107657/215094182-48eab487-417f-4533-aba9-646d63abf7c2.mp4
+
+
