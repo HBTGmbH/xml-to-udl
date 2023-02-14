@@ -34,7 +34,7 @@ Add a Studio export file (.xml) in any arbitary directory and add a folder named
 Replace **<YOUR_STUDIO_EXPORT>** with the filename of your export file and execute the following command in this directory.
 
 ```
-docker run -v "${pwd}/<YOUR_STUDIO_EXPORT>.xml:/irisrun/export.xml" -v "${pwd}/src:/irisrun/udl-export" --rm ghcr.io/hbtgmbh/xml-to-udl/converter
+docker run -v "${pwd}/<YOUR_STUDIO_EXPORT>.xml:/irisrun/export.xml" -v "${pwd}/src:/irisrun/udl-export" --rm ghcr.io/hbtgmbh/xml-to-udl/converter:latest
 ```
 
 After the conversion is finished you should now see the generated sources under "src".
@@ -48,7 +48,7 @@ https://github.com/HBTGmbH/xml-to-udl/blob/master/studio-export-sample/studio-ex
 It's a good practice to use this tool in combination with the [ObjectScript Docker template](https://github.com/intersystems-community/objectscript-docker-template). This template already provides a "src" directory. So you just need to clone/forke this template for your project, add the studio export to the root directory and execute:
 
 ```
-docker run --rm -v "${pwd}/studio-export.xml:/irisrun/export.xml" -v "${pwd}/src:/irisrun/udl-export" xml-to-udl:latest
+docker run -v "${pwd}/studio-export.xml:/irisrun/export.xml" -v "${pwd}/src:/irisrun/udl-export" --rm ghcr.io/hbtgmbh/xml-to-udl/converter:latest
 ```
 After generating the source files it's quite easy to use version control with Git and keep track of your changes during the project.
 
