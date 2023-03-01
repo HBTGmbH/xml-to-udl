@@ -47,10 +47,14 @@ check_for_abspath_to_dir () {
     local path=$2
     case $path in
         (/*)
-            # check if path is an actual directory
-            [ -d $path ] || (echo "The provided $argument_designator is not an actual path to directory.">&2; exit 1);;
+            # check if path is an actual directory or file
+            if [[ ! -d "$path" && ! -f "$path" ]]; then
+                echo "The provided $argument_designator is not an actual path: $path" >&2
+                exit 1
+            fi;;
         (*)
-            echo -e "Please provide an absolute path to the $argument_designator.">&2; exit 1;;
+            echo -e "Please provide an absolute path to the $argument_designator." >&2
+            exit 1;;
     esac
 }
 
