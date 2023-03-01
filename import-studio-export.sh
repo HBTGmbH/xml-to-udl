@@ -1,11 +1,16 @@
 #!/bin/bash
-# This is a helper script for importing a studio-export-xml-file (via the xml-to-udl tool) on linux.
-# 
-# The need for such a script is taht on linux the local file permission and ownership are passed to the docker volume and
-# since the xml-to-udl container runs as non-root user it lacks the necessary permissions to write to the source directory.
-# This script provides the necessary permission and ownership for the source directory before the container is started.
-# But after the conversion is done the files in the source directory have different permissions and ownership that before and 
-# thus git considers every file as modified. To prevent this, the script undoes the changes to ownership and permissions.
+##  This is a helper script for importing a studio-export-xml-file (via the xml-to-udl tool) on linux.
+##  
+##  Usage: import-studio-export.sh -x,--xml-file /abs/path/to/export.xml -s,--source-folder /abs/path/to/source-folder [-i,--image tag-of-converter-image]
+##
+##  Background:
+##  The need for such a script is taht on linux the local file permission and ownership are passed to the docker volume and
+##  since the xml-to-udl container runs as non-root user it lacks the necessary permissions to write to the source directory.
+##  This script provides the necessary permission and ownership for the source directory before the container is started.
+##  But after the conversion is done the files in the source directory have different permissions and ownership that before and 
+##  thus git considers every file as modified. To prevent this, the script undoes the changes to ownership and permissions.
+##
+
 
 # default parameters
 IRIS_OWNER_ID=51773
