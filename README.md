@@ -4,7 +4,7 @@ A docker image that allows you to convert a InterSystems Studio export (.xml) in
 
 ## Prerequisites
 
-Make sure you have [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) and [Docker Desktop](https://www.docker.com/products/docker-desktop) installed. Windows users should use the PowerShell for executing the following docker commands (e.g. ${pwd} only works in the PowerShell).
+Make sure you have [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) and [Docker Desktop](https://www.docker.com/products/docker-desktop) installed. Windows users should use the PowerShell for executing the following docker commands (e.g. ${pwd} only works in the PowerShell). For Linux users we provide a bash script `ìmport-studio-export.sh` that handles permission problems when mounting the docker volume for the UDL export.
 
 ## Features
 
@@ -33,8 +33,13 @@ Add a Studio export file (.xml) in any arbitary directory and add a folder named
 
 Replace **<YOUR_STUDIO_EXPORT>** with the filename of your export file and execute the following command in this directory.
 
+On Windows:
 ```
 docker run -v "${pwd}/<YOUR_STUDIO_EXPORT>.xml:/irisrun/export.xml" -v "${pwd}/src:/irisrun/udl-export" --rm ghcr.io/hbtgmbh/xml-to-udl/converter:latest
+```
+On Linux:
+```
+./import-studio-export.sh
 ```
 
 After the conversion is finished you should now see the generated sources under "src".
