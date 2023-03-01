@@ -19,7 +19,7 @@ SOURCE_DIR=""
 XML_TO_UDL_IMAGE="ghcr.io/hbtgmbh/xml-to-udl/converter:latest"
 
 # get script arguments
-ARGS=$(getopt -o 'x:s:i' --long 'xml-file:,source-folder:,image::' -- "$@") || exit
+ARGS=$(getopt -o 'x:s:i:' --long 'xml-file:,source-folder:,image::' -- "$@") || exit
 eval "set -- $ARGS"
 
 # handle script arguments
