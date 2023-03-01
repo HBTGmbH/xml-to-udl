@@ -6,7 +6,7 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 # Add Git
 RUN apt update && apt-get -y install git
-        
+
 WORKDIR /opt/irisbuild
 RUN chown ${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /opt/irisbuild
 USER ${ISC_PACKAGE_MGRUSER}
@@ -17,7 +17,10 @@ COPY iris.script iris.script
 COPY do-conversion.sh do-conversion.sh
 
 USER root
+RUN mkdir -p /irisrun/udl-export
+RUN chown -R ${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /irisrun/udl-export
 RUN chmod +x do-conversion.sh
+VOLUME [ "/irisrun/udl-export" ]
 
 USER ${ISC_PACKAGE_MGRUSER}
 
