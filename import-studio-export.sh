@@ -7,12 +7,63 @@
 # But after the conversion is done the files in the source directory have different permissions and ownership that before and 
 # thus git considers every file as modified. To prevent this, the script undoes the changes to ownership and permissions.
 
-# TODO: parameterize script (https://www.baeldung.com/linux/use-command-line-arguments-in-bash-script#flags)
-
+# default parameters
 IRIS_OWNER_ID=51773
-EXPORT_FILE="$(pwd)/studio-export.xml"
-SOURCE_DIR="$(pwd)/src"
+XML_FILE=""
+SOURCE_DIR=""
 XML_TO_UDL_IMAGE="ghcr.io/hbtgmbh/xml-to-udl/converter:latest"
+
+# get script arguments
+ARGS=$(getopt -o 'x:s:i' --long 'xml-file:,source-folder:,image::' -- "$@") || exit
+eval "set -- $ARGS"
+
+# handle script arguments
+while true; do
+    case $1 in
+        # handle xml file argument
+        (-x|--xml-file)
+            XML_FILE=$2; shift 2;;
+        # handle source folder argument
+        (-s|--source-folder)
+            SOURCE_DIR=$2; shift 2;;
+        # handle docker image of converter argument
+        (-i|--image)
+            XML_TO_UDL_IMAGE=$2; shift 2;;
+        (--)
+            shift; break;;
+        # any other arg
+        (*)
+            exit 1;;    # return with error
+    esac
+done
+
+check_for_abspath_to_dir () {
+    local argument_designator=$1
+    local path=$2
+    case $path in
+        (/*)
+            # check if path is an actual directory
+            [ -d $path ] || (echo "The provided $argument_designator is not an actual path to directory.">&2; exit 1);;
+        (*)
+            echo -e "Please provide an absolute path to the $argument_designator.">&2; exit 1;;
+    esac
+}
+
+# check for path to xml-file
+if [[ ! $XML_FILE ]]; then
+    echo -e "Argument -x,--xml-file is missing. Please provide a path to a studio export file." >&2
+    exit 1
+else
+    check_for_abspath_to_dir "studio export file" $XML_FILE
+fi
+
+# check for source folder path
+if [[ ! $SOURCE_DIR ]]; then
+    echo -e "Argument -s,--source-folder is missing. Please provide a path to a source directory." >&2
+    exit 1
+else
+    check_for_abspath_to_dir "source folder" $SOURCE_DIR
+fi
 
 # store current owner of source directory
 USER=`ls -ld $SOURCE_DIR | awk '{print $3}'`
@@ -28,7 +79,7 @@ sudo chown $IRIS_OWNER_ID $SOURCE_DIR
 
 # run xml-to-udl converter
 echo "[STEP] Start converter container image $XML_TO_UDL_IMAGE."
-docker run -v "$EXPORT_FILE:/irisrun/export.xml" -v "$SOURCE_DIR/:/irisrun/udl-export" --rm --name xml-to-udl $XML_TO_UDL_IMAGE
+docker run -v "$XML_FILE:/irisrun/export.xml" -v "$SOURCE_DIR/:/irisrun/udl-export" --rm --name xml-to-udl $XML_TO_UDL_IMAGE
 
 # change owner of source folder back to original owner
 echo "[STEP] Change owner of source files back to $USER:$GROUP."
@@ -47,7 +98,7 @@ REVERTING_PERMISSION_PATCH="$(git diff -p -R --no-ext-diff --no-color | \
     grep -E "^(diff|(old|new) mode)" --color=never | \
     # ignore diff's where no permission mode was changed:
     awk '{if ($0 !~ /^diff/ || (NR>1 && prev !~ /^diff/ )) print prev; prev=$0} END {if ($0 !~ /^diff/ || (NR>1 && prev !~ /^diff/ )) print prev}')"
-echo "Patch:\n$REVERTING_PERMISSION_PATCH"
+echo -e "Patch:\n$REVERTING_PERMISSION_PATCH"
 
 # reverting permissions
 echo "[STEP] Applying patch."

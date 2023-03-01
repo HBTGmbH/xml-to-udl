@@ -39,7 +39,7 @@ docker run -v "${pwd}/<YOUR_STUDIO_EXPORT>.xml:/irisrun/export.xml" -v "${pwd}/s
 ```
 On Linux:
 ```
-./import-studio-export.sh
+./import-studio-export.sh --xml-file "$(pwd)/<YOUR_STUDIO_EXPORT>.xml" --source-folder  "$(pwd)/src" --image ghcr.io/hbtgmbh/xml-to-udl/converter:latest
 ```
 
 After the conversion is finished you should now see the generated sources under "src".
