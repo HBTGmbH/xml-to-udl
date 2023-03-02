@@ -14,12 +14,6 @@ USER ${ISC_PACKAGE_MGRUSER}
 COPY src src
 COPY module.xml module.xml
 COPY iris.script iris.script
-COPY do-conversion.sh do-conversion.sh
-
-USER root
-RUN chmod +x do-conversion.sh
-
-USER ${ISC_PACKAGE_MGRUSER}
 
 RUN iris start IRIS \
 	&& iris session IRIS < iris.script \
