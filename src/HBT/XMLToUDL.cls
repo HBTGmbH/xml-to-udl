@@ -35,11 +35,16 @@ ClassMethod ImportUDLFromDefault() As %Status
                 $$$ThrowStatus($$$ERROR($$$GeneralError, tPermissionErrMsg))
             }
         }
+        Write !, "[STEP] Applying fixes to export file..."
         $$$ThrowOnError(##class(Utils.CustomizedHelper).FixExportFile(tLocation, tFixedLocation))
+        Write !, "[STEP] Importing items from export file..."
         $$$ThrowOnError($SYSTEM.OBJ.Load(tFixedLocation,"",.%errorlog,.tImportedItems,0,,))
+        Write !, "[STEP] Starting Conversion to UDL..."
         $$$ThrowOnError(..ExportFiles(tImportedItems))
+        Write !, !, "Successfully Converted!"
         Set tSC = $$$OK
     } Catch tSE {
+        Write !, "Conversion failed with Error: ", !, tSE.DisplayString()
         Set tSC = tSE.AsStatus()
         Quit
     }

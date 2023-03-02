@@ -14,12 +14,11 @@ USER ${ISC_PACKAGE_MGRUSER}
 COPY src src
 COPY module.xml module.xml
 COPY iris.script iris.script
-COPY do-conversion.sh do-conversion.sh
 
 USER root
+# create volume for UDL export
 RUN mkdir -p /irisrun/udl-export
 RUN chown -R ${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /irisrun/udl-export
-RUN chmod +x do-conversion.sh
 VOLUME [ "/irisrun/udl-export" ]
 
 USER ${ISC_PACKAGE_MGRUSER}
