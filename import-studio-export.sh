@@ -1,10 +1,10 @@
 #!/bin/bash
 ##  This is a helper script for importing a studio-export-xml-file (via the xml-to-udl tool) on linux.
 ##  
-##  Usage: import-studio-export.sh -x,--xml-file /abs/path/to/export.xml -s,--source-folder /abs/path/to/source-folder [-i,--image tag-of-converter-image]
+##  Usage: import-studio-export.sh [-d,--delete] -x,--xml-file /abs/path/to/export.xml -s,--source-folder /abs/path/to/source-folder [-i,--image tag-of-converter-image]
 ##
 ##  Background:
-##  The need for such a script is taht on linux the local file permission and ownership are passed to the docker volume and
+##  The need for such a script is that on linux the local file permission and ownership are passed to the docker volume and
 ##  since the xml-to-udl container runs as non-root user it lacks the necessary permissions to write to the source directory.
 ##  This script provides the necessary permission and ownership for the source directory before the container is started.
 ##  But after the conversion is done the files in the source directory have different permissions and ownership that before and 
@@ -17,9 +17,10 @@ IRIS_OWNER_ID=51773
 XML_FILE=""
 SOURCE_DIR=""
 XML_TO_UDL_IMAGE="ghcr.io/hbtgmbh/xml-to-udl/converter:latest"
+DELETE_EXTRANEOUS_FILES=false
 
 # get script arguments
-ARGS=$(getopt -o 'x:s:i:' --long 'xml-file:,source-folder:,image::' -- "$@") || exit
+ARGS=$(getopt -o 'dx:s:i' --long 'delete,xml-file:,source-folder:,image::' -- "$@") || exit
 eval "set -- $ARGS"
 
 # handle script arguments
@@ -34,6 +35,9 @@ while true; do
         # handle docker image of converter argument
         (-i|--image)
             XML_TO_UDL_IMAGE=$2; shift 2;;
+        # handle delete flag
+        (-d|--delete)
+            DELETE_EXTRANEOUS_FILES=true; shift;;
         (--)
             shift; break;;
         # any other arg
@@ -79,12 +83,14 @@ USER=`ls -ld $SOURCE_DIR | awk '{print $3}'`
 GROUP=`ls -ld $SOURCE_DIR | awk '{print $4}'`
 
 # delete all content of source dir
-echo "[STEP] Remove all sources."
-sudo rm -rf src/*
+if [ "$DELETE_EXTRANEOUS_FILES" = true ]; then
+    echo "[STEP] Remove all sources."
+    sudo rm -rf src/*
+fi
 
 # change owner of source folder to iris owner
 echo "[STEP] Prepare source folder with necessary ownership."
-sudo chown $IRIS_OWNER_ID $SOURCE_DIR
+sudo chown -R $IRIS_OWNER_ID $SOURCE_DIR
 
 # run xml-to-udl converter
 echo "[STEP] Start converter container image $XML_TO_UDL_IMAGE."
@@ -95,7 +101,7 @@ echo "[STEP] Change owner of source files back to $USER:$GROUP."
 sudo chown -R $USER:$GROUP $SOURCE_DIR
 
 # replace files with uppercase extension .HL7 oder .INC with lower case extension (only for compatibilty reasons)
-echo "[STEP] Replacing files extensions HL7 or INC with lowercase extension."
+# echo "[STEP] Replacing files extensions HL7 or INC with lowercase extension."
 find $SOURCE_DIR \( -name '*.HL7' -o -name '*.INC' \) -type f -exec sh -c \
     'a=$(echo "$0" | sed -r "s/([^.]*)\$/\L\1/"); [ "$a" != "$0" ] && mv -v -- "$0" "$a"' {} \;
 
