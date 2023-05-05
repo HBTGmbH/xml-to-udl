@@ -100,6 +100,7 @@ docker run -v "$XML_FILE:/irisrun/export.xml" -v "$SOURCE_DIR/:/irisrun/udl-expo
 echo "[STEP] Change owner of source files back to $USER:$GROUP."
 sudo chown -R $USER:$GROUP $SOURCE_DIR
 
+# TODO: add option for controlling letter case of extension (keep as is, to lower, to upper)
 # replace files with uppercase extension .HL7 oder .INC with lower case extension (only for compatibilty reasons)
 # echo "[STEP] Replacing files extensions HL7 or INC with lowercase extension."
 find $SOURCE_DIR \( -name '*.HL7' -o -name '*.INC' \) -type f -exec sh -c \
