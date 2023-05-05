@@ -106,11 +106,16 @@ REVERTING_PERMISSION_PATCH="$(git diff -p -R --no-ext-diff --no-color | \
     # include only diff's and permission mode changes
     grep -E "^(diff|(old|new) mode)" --color=never | \
     # ignore diff's where no permission mode was changed:
-    awk '{if ($0 !~ /^diff/ || (NR>1 && prev !~ /^diff/ )) print prev; prev=$0} END {if ($0 !~ /^diff/ || (NR>1 && prev !~ /^diff/ )) print prev}')"
-echo -e "Patch:\n$REVERTING_PERMISSION_PATCH"
+    awk '{if ($0 !~ /^diff/ || (NR>1 && prev !~ /^diff/ )) print prev; prev=$0} END {if ($0 !~ /^diff/ || (NR>1 && prev !~ /^diff/ )) print prev}' )"
+# check if patch is empty
+if [ -z "$REVERTING_PERMISSION_PATCH" ]; then
+    echo -e "Nothing to patch."
+else
+    echo -e "Patch:\n$REVERTING_PERMISSION_PATCH"
 
-# reverting permissions
-echo "[STEP] Applying patch."
-git apply <<< $REVERTING_PERMISSION_PATCH
+    # reverting permissions
+    echo "[STEP] Applying patch."
+    git apply <<< $REVERTING_PERMISSION_PATCH
+fi
 
 echo -e "\nImport done!"
