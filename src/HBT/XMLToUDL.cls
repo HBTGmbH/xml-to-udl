@@ -22,6 +22,19 @@ ClassMethod ImportUDLFromDefault() As %Status
         If '##class(%File).DirectoryExists(tWorkingDirectory) {
 		    $$$ThrowOnError(##class(%File).CreateDirectoryChain(tWorkingDirectory))
 	    }
+        // check that working directory is writeable
+        If '##class(%File).Writeable(tWorkingDirectory) {
+            Write !, "Permission to write to working directory '", tWorkingDirectory, "' denied."
+            Write !, "Trying to request write permissions for working directory..."
+            If ##class(%File).SetWriteable(tWorkingDirectory, 0, .tOSReturnCode) {
+                Write " Obtained write permission."
+            } Else {
+                // handle no write permissions (even after requesting it)
+                Set tPermissionErrMsg = "Failed to make "_tWorkingDirectory_" writeable (OS return code: "_tOSReturnCode*(-1)_")."_
+                    "Please provide IRIS with the necessary write permissions for the directory."
+                $$$ThrowStatus($$$ERROR($$$GeneralError, tPermissionErrMsg))
+            }
+        }
         Write !, "[STEP] Applying fixes to export file..."
         $$$ThrowOnError(##class(Utils.CustomizedHelper).FixExportFile(tLocation, tFixedLocation))
         Write !, "[STEP] Importing items from export file..."
