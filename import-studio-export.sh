@@ -20,7 +20,7 @@ XML_TO_UDL_IMAGE="ghcr.io/hbtgmbh/xml-to-udl/converter:latest"
 DELETE_EXTRANEOUS_FILES=false
 
 # get script arguments
-ARGS=$(getopt -o 'dx:s:i' --long 'delete,xml-file:,source-folder:,image::' -- "$@") || exit
+ARGS=$(getopt -o 'dx:s:i:' --long 'delete,xml-file:,source-folder:,image::' -- "$@") || exit
 eval "set -- $ARGS"
 
 # handle script arguments
