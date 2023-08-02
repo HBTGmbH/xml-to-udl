@@ -84,8 +84,8 @@ GROUP=`ls -ld $SOURCE_DIR | awk '{print $4}'`
 
 # delete all content of source dir
 if [ "$DELETE_EXTRANEOUS_FILES" = true ]; then
-    echo "[STEP] Remove all sources."
-    sudo rm -rf src/*
+    echo "[STEP] Remove files in $SOURCE_DIR"
+    sudo rm -rf $SOURCE_DIR/*
 fi
 
 # change owner of source folder to iris owner
