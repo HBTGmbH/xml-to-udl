@@ -1,7 +1,28 @@
 #!/bin/bash
 
+#convert web application configurations
+if [ "$(ls -A /webapplications/ | grep -E '.*xml$')" != "" ] ; then
+    cp /webapplications/*.xml /converted-webapps/
+    for inputfile in /converted-webapps/*.xml ; do
+        sed -i -E "s/<NameSpace>.*<\/NameSpace>/<NameSpace>USER<\/NameSpace>/" $inputfile
+    done
+fi
+
 # start IRIS
 iris start IRIS quietly > /dev/null
+
+#import web application configurations
+if [ "$(ls -A /converted-webapps/ | grep -E '.*xml$')" != "" ] ; then
+    for inputfile in /converted-webapps/*.xml ; do
+        cat << EOF | iris session IRIS
+zn "%SYS"
+Write !,##class(Security.Applications).Import("$inputfile")
+zn "USER"
+Halt
+EOF
+    done
+fi
+
 
 # if sucessfully started, call conversion method and print terminal session to stdout
 if [[ $? -eq 0 ]]; then
