@@ -1,7 +1,7 @@
 #!/bin/bash
 ##  This is a helper script for importing a studio-export-xml-file (via the xml-to-udl tool) on linux.
 ##  
-##  Usage: import-studio-export.sh [-d,--delete] -x,--xml-file /abs/path/to/export.xml -s,--source-folder /abs/path/to/source-folder [-i,--image tag-of-converter-image]
+##  Usage: import-studio-export.sh [-d,--delete] -x,--xml-file /abs/path/to/export.xml -s,--source-folder /abs/path/to/source-folder [-i,--image tag-of-converter-image] [-w,--webapps-folder] /abs/path/to/webapps-folder]
 ##
 ##  Background:
 ##  The need for such a script is that on linux the local file permission and ownership are passed to the docker volume and
@@ -16,11 +16,12 @@
 IRIS_OWNER_ID=51773
 XML_FILE=""
 SOURCE_DIR=""
+WEBAPPS_DIR=""
 XML_TO_UDL_IMAGE="ghcr.io/hbtgmbh/xml-to-udl/converter:latest"
 DELETE_EXTRANEOUS_FILES=false
 
 # get script arguments
-ARGS=$(getopt -o 'dx:s:i:' --long 'delete,xml-file:,source-folder:,image::' -- "$@") || exit
+ARGS=$(getopt -o 'dx:s:i:w:' --long 'delete,xml-file:,source-folder:,image::webapps-folder::' -- "$@") || exit
 eval "set -- $ARGS"
 
 # handle script arguments
@@ -38,6 +39,9 @@ while true; do
         # handle delete flag
         (-d|--delete)
             DELETE_EXTRANEOUS_FILES=true; shift;;
+        # handle webapp folder argument
+        (-w|--webapps-folder)
+            WEBAPPS_DIR=$2; shift 2;;
         (--)
             shift; break;;
         # any other arg
@@ -78,6 +82,14 @@ else
     check_for_abspath_to_dir "source folder" $SOURCE_DIR
 fi
 
+# check for webapps folder path
+if [[ ! $WEBAPPS_DIR ]]; then
+    echo -e "Argument -w,--webapps-folder is missing. Please provide a path to a source directory." >&2
+    exit 1
+else
+    check_for_abspath_to_dir "webapps folder" $WEBAPPS_DIR
+fi
+
 # store current owner of source directory
 USER=`ls -ld $SOURCE_DIR | awk '{print $3}'`
 GROUP=`ls -ld $SOURCE_DIR | awk '{print $4}'`
@@ -94,7 +106,7 @@ sudo chown -R $IRIS_OWNER_ID $SOURCE_DIR
 
 # run xml-to-udl converter
 echo "[STEP] Start converter container image $XML_TO_UDL_IMAGE."
-docker run -v "$XML_FILE:/irisrun/export.xml" -v "$SOURCE_DIR/:/irisrun/udl-export" --rm --name xml-to-udl $XML_TO_UDL_IMAGE
+docker run -v "$XML_FILE:/irisrun/export.xml" -v "$SOURCE_DIR/:/irisrun/udl-export" -v "$WEBAPPS_DIR/:/webapplications:ro" --rm --name xml-to-udl $XML_TO_UDL_IMAGE
 
 # change owner of source folder back to original owner
 echo "[STEP] Change owner of source files back to $USER:$GROUP."
