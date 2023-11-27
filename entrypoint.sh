@@ -1,10 +1,12 @@
 #!/bin/bash
 
-#convert web application configurations
+# prepare web application configurations
 if [ "$(ls -A /webapplications/ | grep -E '.*xml$')" != "" ] ; then
+    echo "found web application confiugurations ..."
     cp /webapplications/*.xml /converted-webapps/
     for inputfile in /converted-webapps/*.xml ; do
-        echo "convert webapp config $inputfile"
+        echo "prepare web appclication config file '$inputfile' for import"
+        # replace namespace with default namespace USER
         sed -i -E "s/<NameSpace>.*<\/NameSpace>/<NameSpace>USER<\/NameSpace>/" $inputfile
     done
 fi
@@ -12,10 +14,11 @@ fi
 # start IRIS
 iris start IRIS quietly > /dev/null
 
-#import web application configurations
+# import web application configurations
 if [ "$(ls -A /converted-webapps/ | grep -E '.*xml$')" != "" ] ; then
     for inputfile in /converted-webapps/*.xml ; do
-        echo "import webapp config from $inputfile"
+        echo "import web application config from $inputfile"
+        # call web application import-method from IRIS terminal session
         cat << EOF | iris session IRIS
 zn "%SYS"
 Write !,##class(Security.Applications).Import("$inputfile")

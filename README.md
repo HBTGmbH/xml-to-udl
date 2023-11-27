@@ -34,7 +34,7 @@ Add a Studio export file (.xml) in any arbitary directory and add a folder named
 
 Replace **<YOUR_STUDIO_EXPORT>** with the filename of your export file and execute the following command in this directory.
 
-If your project depends on web applications included in IRIS, you can include theire configuration settings so that the converter will take them into account during the conversion process. To do so, [export the webapp configuration](https://docs.intersystems.com/iris20233/csp/documatic/%25CSP.Documatic.cls?LIBRARY=%25SYS&CLASSNAME=Security.Applications#Export) and place the xml-files into a separate folder, like ``./webapps/``.
+If your project depends on web applications that are included in IRIS, you can include their configuration settings so that the converter takes them into account during the conversion process. To do this, [export the webapp configuration](https://docs.intersystems.com/iris20233/csp/documatic/%25CSP.Documatic.cls?LIBRARY=%25SYS&CLASSNAME=Security.Applications#Export) and save the xml-files in a separate folder, e.g. ``./webapps/``.
 
 On Windows:
 ```
