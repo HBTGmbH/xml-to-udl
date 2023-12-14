@@ -131,7 +131,7 @@ ClassMethod CreateFileName(pItemName As %String, Output oFileName As %String) As
         Set tWorkingDirectory = ..#WORKINGDIRECTORY
         Set tExtension = $$$GetExtension(pItemName)
         // don't split HL7 schema or LUT files by dots
-        If (tExtension '= "hl7") && (tExtension '= "lut") {
+        If (tExtension '= "hl7") && (tExtension '= "lut") && (tExtension '= "csp"){
             Set tDirectory = $PIECE(pItemName, ".",1, *-2 )
             Set tDirectory = $TRANSLATE(tDirectory, ".", "/")
             Set pItemName = tDirectory_"/"_$PIECE(pItemName, ".", *-1, *)
