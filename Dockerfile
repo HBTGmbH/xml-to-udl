@@ -8,7 +8,10 @@ RUN chmod +x /entrypoint.sh
 RUN apt update && apt-get -y install git
 
 WORKDIR /opt/irisbuild
-RUN chown ${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /opt/irisbuild
+RUN \
+    mkdir /webapplications &&\
+    mkdir /converted-webapps &&\
+    chown ${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /opt/irisbuild /webapplications /converted-webapps
 USER ${ISC_PACKAGE_MGRUSER}
 
 COPY src src

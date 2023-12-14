@@ -14,6 +14,7 @@ Make sure you have [Git](https://git-scm.com/book/en/v2/Getting-Started-Installi
 - generation of folder hierarchy based on the class names
 - handling of the most common file types (for example ".cls", ".lut", ".hl7", ".inc", ".gbl").
 - convenient use in combination with the VS Code Extensions from InterSystems
+- considers webapplication settings during conversion process
 
 
 ## Good to know
@@ -33,13 +34,17 @@ Add a Studio export file (.xml) in any arbitary directory and add a folder named
 
 Replace **<YOUR_STUDIO_EXPORT>** with the filename of your export file and execute the following command in this directory.
 
+If your project depends on web applications that are included in IRIS, you can include their configuration settings so that the converter takes them into account during the conversion process. To do this, [export the webapp configuration](https://docs.intersystems.com/iris20233/csp/documatic/%25CSP.Documatic.cls?LIBRARY=%25SYS&CLASSNAME=Security.Applications#Export) and save the xml-files in a separate folder, e.g. ``./webapps/``.
+
 On Windows:
 ```
-docker run -v "${pwd}/<YOUR_STUDIO_EXPORT>.xml:/irisrun/export.xml" -v "${pwd}/src:/irisrun/udl-export" --rm ghcr.io/hbtgmbh/xml-to-udl/converter:latest
+docker run -v "${pwd}/<YOUR_STUDIO_EXPORT>.xml:/irisrun/export.xml" -v "${pwd}/src:/irisrun/udl-export" -v "${pwd}/webapps:/webapplications" --rm ghcr.io/hbtgmbh/xml-to-udl/converter:latest
 ```
+*Note that there a three volumes mounted: 1. for your studio-export.xml-file, 2. your project source directory, 3. (optional) folder of your webapp config export files.*
+
 On Linux:
 ```
-./import-studio-export.sh --xml-file "$(pwd)/<YOUR_STUDIO_EXPORT>.xml" --source-folder  "$(pwd)/src" --image ghcr.io/hbtgmbh/xml-to-udl/converter:latest
+./import-studio-export.sh --xml-file "$(pwd)/<YOUR_STUDIO_EXPORT>.xml" --source-folder  "$(pwd)/src" --webapps-folder "$(pwd)/webapps" --image ghcr.io/hbtgmbh/xml-to-udl/converter:latest
 ```
 
 After the conversion is finished you should now see the generated sources under "src".
