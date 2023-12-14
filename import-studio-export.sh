@@ -106,7 +106,7 @@ sudo chown -R $IRIS_OWNER_ID $SOURCE_DIR
 
 # run xml-to-udl converter
 echo "[STEP] Start converter container image $XML_TO_UDL_IMAGE."
-docker run -v "$XML_FILE:/irisrun/export.xml" -v "$SOURCE_DIR/:/irisrun/udl-export" -v "$WEBAPPS_DIR/:/webapplications:ro" --rm --name xml-to-udl $XML_TO_UDL_IMAGE
+docker run -v "$XML_FILE:/irisrun/export.xml" -v "$SOURCE_DIR/:/irisrun/udl-export" -v "$WEBAPPS_DIR/:/webapplications:ro" --rm --pull always --name xml-to-udl $XML_TO_UDL_IMAGE
 
 # change owner of source folder back to original owner
 echo "[STEP] Change owner of source files back to $USER:$GROUP."
