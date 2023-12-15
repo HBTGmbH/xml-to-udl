@@ -106,10 +106,11 @@ ClassMethod ExportItem(pItemName As %String) As %Status
         If $LISTFIND(..#EXTENSIONEXPORTEDASUDL, tItemExtension) {
             $$$ThrowOnError(##class(Utils.CustomizedHelper).GetClassStatus(pItemName, .tSkipItem))
             If (tSkipItem) {
-                Write !,"Skip exporting class because it is generated, mapped or a %-class: ", pItemName,!
+                Write "Skip exporting class because it is generated, mapped or a %-class: ", pItemName,!
             } Else {
-            // trigger export of classes and routines
-            $$$ThrowOnError($SYSTEM.OBJ.ExportUDL(pItemName, tFileName))
+                // trigger export of classes and routines
+                Write "Export-Format: UDL", !
+                $$$ThrowOnError($SYSTEM.OBJ.ExportUDL(pItemName, tFileName))
             }
         }
         // trigger export of other items (for example .hl7 or .lut files)
@@ -118,10 +119,13 @@ ClassMethod ExportItem(pItemName As %String) As %Status
                 // splits file paths into subfolders at hyphens
                 Set pItemName = $REPLACE(pItemName,"-","/") // needed for .dfi files
             }
+            Write "Export-Format: XML"
             $$$ThrowOnError(##class(Utils.CustomizedHelper).FixXMLLine(pItemName, tFileName))
         }
+        Write "File ", pItemName, " successfully exported.", !
         Set tSC = $$$OK
     } Catch tSE {
+        Write "Failed to export ", pItemName, ": ", tSE.DisplayString(), !
         Set tSC = tSE.AsStatus()
         Quit
     }
@@ -155,7 +159,7 @@ ClassMethod CreateFileName(pItemName As %String, Output oFileName As %String) As
         If ('$FIND(oFileName, tWorkingDirectory)) {
             Set oFileName = tWorkingDirectory_oFileName
         }
-        Write "Filename: ",oFileName,!
+        Write "Evaluated filename: '",oFileName, "'", !
         Set tSC = $$$OK
     }
     Catch tSE {
