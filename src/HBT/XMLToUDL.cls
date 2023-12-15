@@ -4,7 +4,18 @@ Include Utils.HBTLib
 Class HBT.XMLToUDL
 {
 
+/// Root directory where all the converted UDL files are stored in
 Parameter WORKINGDIRECTORY = "/irisrun/udl-export";
+
+/// Comma-separated list of filename extensions, that gets exported in UDL format, i.e. (classes or routines)
+Parameter EXTENSIONEXPORTEDASUDL As List = {$LB("cls", "mac", "int", "inc")};
+
+/// Comma-separated list of filename extensions, whose file path should not be converted to subfolders at points
+Parameter EXTENSIONSNOTSPLITTINGATDOTS As List = {$LB("hl7", "csp", "lut")};
+
+/// Comma-separated list of filename extensions, whose file path should not be converted to subfolders at hyphens
+Parameter EXTENSIONSSPLITTEDATHYPHENS As List = {$LB("dfi")};
+
 
 /// This method is the entrypoint for the transformation of the studio export file into UDL sources.
 ClassMethod ImportUDLFromDefault() As %Status
@@ -84,34 +95,37 @@ ClassMethod ExportItem(pItemName As %String) As %Status
 {
     #Dim tSC As %Status
     #Dim tSE As %Exception.StatusException
-    #Dim tClassAndRoutinesExtensions As List of %String
-    #Dim tCommonItemTypeExtensions As List of %String
     #Dim tItemExtension As %String
     
     Try {
         Write !,"Exporting File: ", pItemName,!
-        Set tClassAndRoutinesExtensions = $LISTBUILD("cls", "mac", "int", "inc")
-        Set tCommonItemTypeExtensions = $LISTBUILD("hl7","csp","lut")
         Set tItemExtension = $$$GetExtension(pItemName)
         $$$ThrowOnError(..CreateFileName(pItemName, .tFileName))
         $$$ThrowOnError(..CreateDirectory(tFileName))
-        If $LISTFIND(tClassAndRoutinesExtensions, tItemExtension) {
+        // export to UDL format (i.e. classes and routines)
+        If $LISTFIND(..#EXTENSIONEXPORTEDASUDL, tItemExtension) {
             $$$ThrowOnError(##class(Utils.CustomizedHelper).GetClassStatus(pItemName, .tSkipItem))
             If (tSkipItem) {
-                Write !,"Skip exporting class because it is generated, mapped or a %-class: ", pItemName,!
+                Write "Skip exporting class because it is generated, mapped or a %-class: ", pItemName,!
             } Else {
-            // trigger export of classes and routines
-            $$$ThrowOnError($SYSTEM.OBJ.ExportUDL(pItemName, tFileName))
+                // trigger export of classes and routines
+                Write "Export-Format: UDL", !
+                $$$ThrowOnError($SYSTEM.OBJ.ExportUDL(pItemName, tFileName))
             }
-        } Else {
-            // trigger export of other items (for example .hl7 or .lut files)
-            If '$LISTFIND(tCommonItemTypeExtensions, tItemExtension) {
-                Set pItemName = $REPLACE(pItemName,"-","/") // needed for .dfi files 
+        }
+        // trigger export of other items (for example .hl7 or .lut files)
+        Else {
+            If $LISTFIND(..#EXTENSIONSSPLITTEDATHYPHENS, tItemExtension) {
+                // splits file paths into subfolders at hyphens
+                Set pItemName = $REPLACE(pItemName,"-","/") // needed for .dfi files
             }
+            Write "Export-Format: XML"
             $$$ThrowOnError(##class(Utils.CustomizedHelper).FixXMLLine(pItemName, tFileName))
         }
+        Write "File ", pItemName, " successfully exported.", !
         Set tSC = $$$OK
     } Catch tSE {
+        Write "Failed to export ", pItemName, ": ", tSE.DisplayString(), !
         Set tSC = tSE.AsStatus()
         Quit
     }
@@ -130,21 +144,22 @@ ClassMethod CreateFileName(pItemName As %String, Output oFileName As %String) As
     Try {
         Set tWorkingDirectory = ..#WORKINGDIRECTORY
         Set tExtension = $$$GetExtension(pItemName)
-        // don't split HL7 schema or LUT files by dots
-        If (tExtension '= "hl7") && (tExtension '= "lut") {
+        // splits file paths into subfolders at dots (exept for the dot in front of the file extension)
+        If '$LISTFIND(..#EXTENSIONSNOTSPLITTINGATDOTS, tExtension) {
             Set tDirectory = $PIECE(pItemName, ".",1, *-2 )
             Set tDirectory = $TRANSLATE(tDirectory, ".", "/")
             Set pItemName = tDirectory_"/"_$PIECE(pItemName, ".", *-1, *)
         }
         Set oFileName = ##class(%File).NormalizeFilename(pItemName, tWorkingDirectory)
         If (tExtension = "dfi") {
+            // replace extension with ".xml"
             Set oFileName = $EXTRACT(oFileName,1,*-4)_".xml"
         }
         // make sure that the files are stored in the "src" directory of the project 
         If ('$FIND(oFileName, tWorkingDirectory)) {
             Set oFileName = tWorkingDirectory_oFileName
         }
-        Write "Filename: ",oFileName,!
+        Write "Evaluated filename: '",oFileName, "'", !
         Set tSC = $$$OK
     }
     Catch tSE {
