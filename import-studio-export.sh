@@ -11,6 +11,11 @@
 ##  thus git considers every file as modified. To prevent this, the script undoes the changes to ownership and permissions.
 ##
 
+function cleanup {      
+  rm -rf "$WEBAPPS_DIR"
+  echo "Deleted temp $WEBAPPS_DIR"
+}
+
 
 # default parameters
 IRIS_OWNER_ID=51773
@@ -21,7 +26,7 @@ XML_TO_UDL_IMAGE="ghcr.io/hbtgmbh/xml-to-udl/converter:latest"
 DELETE_EXTRANEOUS_FILES=false
 
 # get script arguments
-ARGS=$(getopt -o 'dx:s:i:w:' --long 'delete,xml-file:,source-folder:,image::webapps-folder::' -- "$@") || exit
+ARGS=$(getopt -o 'dx:s:i:w:' --long 'delete,xml-file:,source-folder:,image::,webapps-folder::' -- "$@") || exit
 eval "set -- $ARGS"
 
 # handle script arguments
@@ -82,13 +87,15 @@ else
     check_for_abspath_to_dir "source folder" $SOURCE_DIR
 fi
 
+
 # check for webapps folder path
 if [[ ! $WEBAPPS_DIR ]]; then
-    echo -e "Argument -w,--webapps-folder is missing. Please provide a path to a source directory." >&2
-    exit 1
-else
-    check_for_abspath_to_dir "webapps folder" $WEBAPPS_DIR
+    # create empty temp dir
+    WEBAPPS_DIR=`mktemp -d`
+    trap cleanup EXIT
 fi
+check_for_abspath_to_dir "webapps folder" $WEBAPPS_DIR
+
 
 # store current owner of source directory
 USER=`ls -ld $SOURCE_DIR | awk '{print $3}'`
