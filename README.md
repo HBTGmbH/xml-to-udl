@@ -25,14 +25,31 @@ This results in a problem with a folder name "CON" because no folder with this n
 
 ## Usage
 
-Pull the image.
+### Pull the converter image
 
 ```
 docker pull ghcr.io/hbtgmbh/xml-to-udl/converter:latest
 ```
+
+
+### Run XML-to-UDL conversion
 Add a Studio export file (.xml) in any arbitary directory and add a folder named "src".
 
 Replace **<YOUR_STUDIO_EXPORT>** with the filename of your export file and execute the following command in this directory.
+
+On Windows:
+```
+docker run -v "${pwd}/<YOUR_STUDIO_EXPORT>.xml:/irisrun/export.xml" -v "${pwd}/src:/irisrun/udl-export" --rm ghcr.io/hbtgmbh/xml-to-udl/converter:latest
+```
+On Linux:
+```
+./import-studio-export.sh --xml-file "$(pwd)/<YOUR_STUDIO_EXPORT>.xml" --source-folder  "$(pwd)/src" --image ghcr.io/hbtgmbh/xml-to-udl/converter:latest
+```
+
+After the conversion is finished you should now see the generated sources under "src".
+
+
+### Run XML-to-UDL conversion including webapp configs
 
 If your project depends on web applications that are included in IRIS, you can include their configuration settings so that the converter takes them into account during the conversion process. To do this, [export the webapp configuration](https://docs.intersystems.com/iris20233/csp/documatic/%25CSP.Documatic.cls?LIBRARY=%25SYS&CLASSNAME=Security.Applications#Export) and save the xml-files in a separate folder, e.g. ``./webapps/``.
 
@@ -40,14 +57,13 @@ On Windows:
 ```
 docker run -v "${pwd}/<YOUR_STUDIO_EXPORT>.xml:/irisrun/export.xml" -v "${pwd}/src:/irisrun/udl-export" -v "${pwd}/webapps:/webapplications" --rm ghcr.io/hbtgmbh/xml-to-udl/converter:latest
 ```
-*Note that there a three volumes mounted: 1. for your studio-export.xml-file, 2. your project source directory, 3. (optional) folder of your webapp config export files.*
+*Note that there are now three volumes mounted: 1. for your studio-export.xml-file, 2. your project source directory, 3. (optional) folder of your webapp config export files.*
 
 On Linux:
 ```
 ./import-studio-export.sh --xml-file "$(pwd)/<YOUR_STUDIO_EXPORT>.xml" --source-folder  "$(pwd)/src" --webapps-folder "$(pwd)/webapps" --image ghcr.io/hbtgmbh/xml-to-udl/converter:latest
 ```
 
-After the conversion is finished you should now see the generated sources under "src".
 
 ## Examples
 
@@ -63,8 +79,7 @@ docker run -v "${pwd}/studio-export.xml:/irisrun/export.xml" -v "${pwd}/src:/iri
 After generating the source files it's quite easy to use version control with Git and keep track of your changes during the project.
 
 ## Contributing
-For major changes, please open an issue first
-to discuss what you would like to change.
+For major changes, please open an issue first to discuss what you would like to change.
 
 ## Demo
 
