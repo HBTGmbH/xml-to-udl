@@ -22,6 +22,7 @@ IRIS_OWNER_ID=51773
 XML_FILE=""
 SOURCE_DIR=""
 WEBAPPS_DIR=""
+IS_WEBAPPS_DIR_SET=false
 XML_TO_UDL_IMAGE="ghcr.io/hbtgmbh/xml-to-udl/converter:latest"
 DELETE_EXTRANEOUS_FILES=false
 
@@ -89,12 +90,10 @@ fi
 
 
 # check for webapps folder path
-if [[ ! $WEBAPPS_DIR ]]; then
-    # create empty temp dir
-    WEBAPPS_DIR=`mktemp -d`
-    trap cleanup EXIT
+if [[ $WEBAPPS_DIR ]]; then
+    check_for_abspath_to_dir "webapps folder" $WEBAPPS_DIR
+    IS_WEBAPPS_DIR_SET=true
 fi
-check_for_abspath_to_dir "webapps folder" $WEBAPPS_DIR
 
 
 # store current owner of source directory
@@ -113,7 +112,13 @@ sudo chown -R $IRIS_OWNER_ID $SOURCE_DIR
 
 # run xml-to-udl converter
 echo "[STEP] Start converter container image $XML_TO_UDL_IMAGE."
-docker run -v "$XML_FILE:/irisrun/export.xml" -v "$SOURCE_DIR/:/irisrun/udl-export" -v "$WEBAPPS_DIR/:/webapplications:ro" --rm --name xml-to-udl $XML_TO_UDL_IMAGE
+if $IS_WEBAPPS_DIR_SET; then
+    # run with webapp volume mounted 
+    docker run -v "$XML_FILE:/irisrun/export.xml" -v "$SOURCE_DIR/:/irisrun/udl-export" -v "$WEBAPPS_DIR/:/webapplications:ro" --rm --name xml-to-udl $XML_TO_UDL_IMAGE
+else
+    # run only with required volumens
+    docker run -v "$XML_FILE:/irisrun/export.xml" -v "$SOURCE_DIR/:/irisrun/udl-export" --rm --name xml-to-udl $XML_TO_UDL_IMAGE
+fi
 
 # change owner of source folder back to original owner
 echo "[STEP] Change owner of source files back to $USER:$GROUP."
