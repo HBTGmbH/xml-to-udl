@@ -91,7 +91,7 @@ ClassMethod ExportItem(pItemName As %String) As %Status
     Try {
         Write !,"Exporting File: ", pItemName,!
         Set tClassAndRoutinesExtensions = $LISTBUILD("cls", "mac", "int", "inc")
-        Set tCommonItemTypeExtensions = $LISTBUILD("hl7","csp","lut")
+        Set tCommonItemTypeExtensions = $LISTBUILD("hl7","csp","lut","prj")
         Set tItemExtension = $$$GetExtension(pItemName)
         $$$ThrowOnError(..CreateFileName(pItemName, .tFileName))
         $$$ThrowOnError(..CreateDirectory(tFileName))
