@@ -38,7 +38,7 @@ ClassMethod ImportUDLFromDefault() As %Status
         Write !, "[STEP] Applying fixes to export file..."
         $$$ThrowOnError(##class(Utils.CustomizedHelper).FixExportFile(tLocation, tFixedLocation))
         Write !, "[STEP] Importing items from export file..."
-        $$$ThrowOnError($SYSTEM.OBJ.Load(tFixedLocation,"",.%errorlog,.tImportedItems,0,,))
+        Do $SYSTEM.OBJ.Load(tFixedLocation,"",.%errorlog,.tImportedItems,0,,)
         Write !, "[STEP] Starting Conversion to UDL..."
         $$$ThrowOnError(..ExportFiles(tImportedItems))
         Write !, !, "Successfully Converted!"
